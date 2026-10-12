@@ -4,8 +4,15 @@ from abc import ABC, abstractmethod
 from dcs_world.geometry.pose import Pose
 from .robot_utils import RobotStatus, RobotConfig
 
+
 class Robot(ABC):
-    """Represent a robot in the simulated world."""
+    """Represent an abstract robot in the simulated world.
+
+    Attributes:
+        charge (float): Current battery charge as a percentage (0–100).
+        status (RobotStatus): Current operational status of the robot.
+        config (RobotConfig): Configuration parameters of the robot.
+    """
 
     def __init__(
         self,
@@ -15,14 +22,28 @@ class Robot(ABC):
         init_charge: float = 100.0,
         config: RobotConfig | None = None,
     ) -> None:
-        """
-        @brief Initialize the robot with an initial pose and charge level.
+        """Initialize the robot's state and configuration.
 
-        @param init_x Initial x-coordinate in meters.
-        @param init_y Initial y-coordinate in meters.
-        @param init_yaw Initial heading in radians.
-        @param init_charge Initial battery charge percentage (0–100).
-        @param config Configuration for the robot.
+        Args:
+            init_x (float, optional): Initial x-coordinate. Defaults to 0.0.
+            init_y (float, optional): Initial y-coordinate. Defaults to 0.0.
+            init_yaw (float, optional): Initial orientation in radians.
+                Defaults to 0.0.
+            init_charge (float, optional): Initial battery charge as a
+                percentage between 0 and 100. Defaults to 100.0.
+            config (RobotConfig | None, optional): Robot configuration.
+                Must be a RobotConfig instance. Defaults to None.
+
+        Raises:
+            TypeError: If a numeric parameter is not an integer or float,
+                or if a numeric parameter is a boolean.
+            TypeError: If config is not a RobotConfig instance.
+            ValueError: If init_charge is outside the range [0, 100].
+            ValueError: If config is None.
+
+        Notes:
+            The initial position and orientation are converted to floats.
+            The robot's initial status is set to RobotStatus.IDLE.
         """
 
         # Validate numeric inputs
@@ -60,26 +81,35 @@ class Robot(ABC):
         # Store configuration
         self.config = config
 
-    # * Properties
-    
     @property
     def pose(self) -> Pose:
+        """Return a copy of the robot's current pose.
+
+        Returns:
+            Pose: A new Pose instance containing the current position
+                and orientation of the robot.
+
+        Notes:
+            Returning a copy prevents external modifications from directly
+            changing the robot's internal pose.
         """
-        @brief Get the robot's current pose.
-        """
-        
         return Pose(
             x=self.__pose.x,
             y=self.__pose.y,
             yaw=self.__pose.yaw,
         )
-    
+
     @property
     def telemetry(self) -> dict:
-        """
-        @brief Get the robot's current telemetry.
+        """Return the robot's current telemetry.
 
-        @return A dictionary containing the current pose, charge, and status.
+        Returns:
+            dict: A dictionary containing the robot's current pose,
+                battery charge, and operational status. The dictionary
+                has the following keys:
+                - "pose": Current pose as a Pose instance.
+                - "charge": Current battery charge as a percentage.
+                - "status": Current operational status as a RobotStatus.
         """
         return {
             "pose": self.pose,
@@ -89,10 +119,19 @@ class Robot(ABC):
 
     @abstractmethod
     def move(self, cmd_vel: np.ndarray) -> None:
-        """
-        @brief Apply a velocity command to the robot.
+        """Update the robot's motion according to a velocity command.
 
-        @param cmd_vel A two-element array containing the linear
-                    and angular velocity commands.
+        Args:
+            cmd_vel (np.ndarray): Array containing the commanded velocity
+                components. Its shape and interpretation depend on the
+                concrete robot implementation.
+
+        Raises:
+            NotImplementedError: If the method is not overridden by a
+                concrete subclass.
+
+        Notes:
+            Subclasses must implement this method to define the robot's
+            movement behavior.
         """
         raise NotImplementedError("Movement is not implemented yet.")
