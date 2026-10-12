@@ -16,7 +16,7 @@ A Python library for modeling and managing robots, their environments, and relat
 Clone the repository:
 
 ```bash
-git clone git@github.com:YOUR_USERNAME/dcs_world.git
+git clone https://github.com/FrankJhemuel/dcs_world
 cd dcs_world
 ```
 
