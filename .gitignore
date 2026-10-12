@@ -11,3 +11,5 @@ wheels/
 
 # User specific
 .vscode/
+.env
+.coverage

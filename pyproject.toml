@@ -1,7 +1,7 @@
 [project]
 name = "dcs-world"
 version = "0.1.0"
-description = "Add your description here"
+description = "A Python library for discrete-event and robotic simulation."
 readme = "README.md"
 authors = [
     { name = "FrankJhemuel", email = "frankjhemuelvillanueva@gmail.com" }
@@ -20,4 +20,9 @@ build-backend = "uv_build"
 [dependency-groups]
 dev = [
     "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["-p", "pytest_cov"]
