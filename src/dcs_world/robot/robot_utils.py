@@ -52,3 +52,7 @@ class RobotStatus(Enum):
     EXECUTING = auto()
     MOVING = auto()
     ERROR = auto()
+
+    # Drone-specific states
+    FLYING = auto()
+    LANDING = auto()

@@ -1,11 +1,10 @@
 import numpy as np
-from abc import ABC, abstractmethod
 
 from dcs_world.geometry.pose import Pose
 from .robot_utils import RobotStatus, RobotConfig
 
 
-class Robot(ABC):
+class Robot():
     """Represent an abstract robot in the simulated world.
 
     Attributes:
@@ -57,6 +56,10 @@ class Robot(ABC):
         for name, value in numeric_params.items():
             if isinstance(value, bool) or not isinstance(value, (int, float)):
                 raise TypeError(f"{name} must be a numeric value.")
+        
+        # Validate finite numeric inputs
+        if not all(np.isfinite(value) for value in numeric_params.values()):
+            raise ValueError("Numeric parameters must be finite.")
 
         # Validate ranges
         if not 0.0 <= init_charge <= 100.0:
@@ -70,7 +73,7 @@ class Robot(ABC):
             raise TypeError("config must be an instance of RobotConfig.")
 
         # Initialize state
-        self.__pose = Pose(
+        self._pose = Pose(
             x=float(init_x),
             y=float(init_y),
             yaw=float(init_yaw),
@@ -94,9 +97,9 @@ class Robot(ABC):
             changing the robot's internal pose.
         """
         return Pose(
-            x=self.__pose.x,
-            y=self.__pose.y,
-            yaw=self.__pose.yaw,
+            x=self._pose.x,
+            y=self._pose.y,
+            yaw=self._pose.yaw,
         )
 
     @property
@@ -117,21 +120,47 @@ class Robot(ABC):
             "status": self.status,
         }
 
-    @abstractmethod
-    def move(self, cmd_vel: np.ndarray) -> None:
-        """Update the robot's motion according to a velocity command.
+    def move(self, cmd_vel: np.ndarray, dt: float) -> None:
+        """Update the robot's pose according to a velocity command.
 
         Args:
-            cmd_vel (np.ndarray): Array containing the commanded velocity
-                components. Its shape and interpretation depend on the
-                concrete robot implementation.
+            cmd_vel (np.ndarray): One-dimensional NumPy array containing
+                the velocity components [vx, vy, omega], where vx and vy
+                are translational velocities and omega is the angular
+                velocity.
+            dt (float): Time step in seconds over which the velocity
+                command is applied.
 
         Raises:
-            NotImplementedError: If the method is not overridden by a
-                concrete subclass.
+            TypeError: If cmd_vel is not a NumPy array or dt is not numeric.
+            ValueError: If cmd_vel does not have shape (3,) or dt is not
+                finite and positive.
 
         Notes:
-            Subclasses must implement this method to define the robot's
-            movement behavior.
+            This method provides a default implementation that updates the
+            robot's pose by integrating the commanded velocities over dt.
+            Subclasses may override this method to implement robot-specific
+            motion models.
         """
-        raise NotImplementedError("Movement is not implemented yet.")
+        # Validate cmd_vel and dt
+        if not isinstance(cmd_vel, np.ndarray):
+            raise TypeError("cmd_vel must be a NumPy ndarray.")
+
+        if cmd_vel.shape != (3,):
+            raise ValueError("cmd_vel must be a 1D array with exactly 3 elements.")
+
+        if not np.issubdtype(cmd_vel.dtype, np.number):
+            raise TypeError("cmd_vel must contain numeric values.")
+
+        if not np.all(np.isfinite(cmd_vel)):
+            raise ValueError("cmd_vel must contain only finite values.")
+
+        if isinstance(dt, bool) or not isinstance(dt, (int, float)):
+            raise TypeError("dt must be a numeric value.")
+
+        if not np.isfinite(dt) or dt <= 0:
+            raise ValueError("dt must be finite and positive.")
+
+        # Update the robot's pose based on the commanded velocity and time step
+        delta_pose = cmd_vel * dt
+        self._pose.as_np_array = self._pose.as_np_array + delta_pose
