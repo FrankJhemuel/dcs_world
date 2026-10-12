@@ -1,9 +1,10 @@
 import numpy as np
+from abc import ABC, abstractmethod
 
 from dcs_world.geometry.pose import Pose
 from .robot_utils import RobotStatus, RobotConfig
 
-class Robot:
+class Robot(ABC):
     """Represent a robot in the simulated world."""
 
     def __init__(
@@ -48,7 +49,7 @@ class Robot:
             raise TypeError("config must be an instance of RobotConfig.")
 
         # Initialize state
-        self.pose = Pose(
+        self.__pose = Pose(
             x=float(init_x),
             y=float(init_y),
             yaw=float(init_yaw),
@@ -59,6 +60,20 @@ class Robot:
         # Store configuration
         self.config = config
 
+    # * Properties
+    
+    @property
+    def pose(self) -> Pose:
+        """
+        @brief Get the robot's current pose.
+        """
+        
+        return Pose(
+            x=self.__pose.x,
+            y=self.__pose.y,
+            yaw=self.__pose.yaw,
+        )
+    
     @property
     def telemetry(self) -> dict:
         """
@@ -72,11 +87,12 @@ class Robot:
             "status": self.status,
         }
 
-    def move_towards(self, new_x: float, new_y: float) -> None:
+    @abstractmethod
+    def move(self, cmd_vel: np.ndarray) -> None:
         """
-        @brief Move the robot towards a target position.
+        @brief Apply a velocity command to the robot.
 
-        @param new_x Target x-coordinate in meters.
-        @param new_y Target y-coordinate in meters.
+        @param cmd_vel A two-element array containing the linear
+                    and angular velocity commands.
         """
         raise NotImplementedError("Movement is not implemented yet.")
