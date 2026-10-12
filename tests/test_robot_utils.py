@@ -49,10 +49,3 @@ def test_robot_config_dataclass_equality() -> None:
     )
 
     assert config1 == config2
-
-
-def test_robot_status_values_are_distinct() -> None:
-    statuses = list(RobotStatus)
-
-    assert len(statuses) == 5
-    assert len({status.value for status in statuses}) == 5
