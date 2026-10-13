@@ -17,18 +17,17 @@ class Drone(Robot):
         """Initialize the drone with its initial state and configuration.
 
         Args:
-            init_x (float): Initial x-coordinate of the drone.
-            init_y (float): Initial y-coordinate of the drone.
-            init_yaw (float): Initial orientation in radians.
-            init_charge (float): Initial battery charge as a percentage
+            init_x: Initial x-coordinate of the drone.
+            init_y: Initial y-coordinate of the drone.
+            init_yaw: Initial orientation in radians.
+            init_charge: Initial battery charge as a percentage
                 between 0 and 100.
-            config (RobotConfig): Configuration parameters of the drone.
+            config: Configuration parameters of the drone.
 
-        Raises:
-            TypeError: If a numeric parameter has an invalid type or config
-                is not a RobotConfig instance.
-            ValueError: If the initial battery charge is outside the range
-                [0, 100] or the configuration is invalid.
+        Notes:
+            The initial state and configuration are handled by the Robot
+            base class. The drone's observations are initialized using
+            a DroneObservations instance.
         """
         super().__init__(
             init_x=init_x,
@@ -44,7 +43,7 @@ class Drone(Robot):
         self,
         new_observations: DroneObservations,
     ) -> None:
-        """Merge newly detected observations into the drone's observations."""
+        """Merge new observations into the drone's existing observations."""
         self.observations.update(new_observations)
 
     def add_POI_observation(self, position: Position) -> None:
