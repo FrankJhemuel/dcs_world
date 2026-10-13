@@ -19,11 +19,17 @@ class DroneObservations(RobotObservations):
 
     def add_poi(self, position: Position) -> None:
         """Add a point of interest if it has not already been observed."""
+        if not isinstance(position, Position):
+            raise TypeError("position must be a Position instance when adding a POI.")
+        
         if position not in self.pois:
             self.pois.append(copy(position))
 
     def add_obstacle(self, position: Position) -> None:
         """Add an obstacle if it has not already been observed."""
+        if not isinstance(position, Position):
+            raise TypeError("position must be a Position instance when adding an obstacle.")
+        
         if position not in self.obstacles:
             self.obstacles.append(copy(position))
 
@@ -34,7 +40,8 @@ class DroneObservations(RobotObservations):
             new_observations: Drone observations to merge.
 
         Raises:
-            TypeError: If the input is not a DroneObservations instance.
+            TypeError: If the input is not a DroneObservations instance or
+                contains invalid position entries.
         """
         if not isinstance(new_observations, DroneObservations):
             raise TypeError(
