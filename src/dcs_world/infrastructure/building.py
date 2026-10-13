@@ -62,15 +62,41 @@ class Building:
         if not isinstance(poi_status, dict):
             raise TypeError("poi_status must be a dictionary.")
 
-        if not self.REQUIRED_KEYS.issubset(poi_status.keys()):
+        if not self.REQUIRED_KEYS.issubset(poi_status.keys()) or len(poi_status) != len(self.REQUIRED_KEYS):
             raise ValueError(
-                f"poi_status must contain the following keys: {self.REQUIRED_KEYS}"
+                f"poi_status must be the following keys: {self.REQUIRED_KEYS}"
             )
 
         self._poi_status = poi_status.copy()
 
+    def update_poi_status(self, key: str, value: int | float | bool) -> None:
+        """Update a specific key in the point of interest (POI) status of the building.
+
+        Args:
+            key (str): The key in the POI status to update.
+            value: The new value for the specified key.
+        """
+        if key not in self.REQUIRED_KEYS:
+            raise ValueError(
+                f"Invalid key: {key}. Must be one of {self.REQUIRED_KEYS}")
+
+        if key in ["n_civ", "clear_time"]:
+            if not isinstance(value, (int, float)):
+                raise TypeError(
+                    f"Value for {key} must be an int or float, not {type(value).__name__}.")
+
+            if key == "n_civ" and not isinstance(value, int):
+                raise TypeError(
+                    f"Value for {key} must be an int, not {type(value).__name__}.")
+
+        if not isinstance(value, bool) and key in ["is_poi", "can_collapse"]:
+            raise TypeError(
+                f"Value for {key} must be a bool, not {type(value).__name__}.")
+
+        self._poi_status[key] = value
+
     @staticmethod
-    def generate_building_poi_status(is_poi: bool, n_civ: int = 0, clear_time: float = 0., can_collapse: bool = False) -> dict:
+    def generate_building_poi_status(is_poi: bool = False, n_civ: int = 0, clear_time: float = 0., can_collapse: bool = False) -> dict:
         """Generate a dictionary representing the POI status of a building.
 
         Args:
@@ -85,6 +111,10 @@ class Building:
         Notes:
             This method is useful for creating a valid poi_status dictionary to be used with the `set_poi_status` method or the `with_poi_status` class method.
         """
+        if not isinstance(is_poi, bool) or not isinstance(can_collapse, bool) or not isinstance(n_civ, int) or not isinstance(clear_time, (int, float)):
+            raise TypeError(
+                "Invalid types for POI status parameters. Expected types are: is_poi (bool), n_civ (int), clear_time (float), can_collapse (bool).")
+
         return {
             "is_poi": is_poi,
             "n_civ": n_civ,
