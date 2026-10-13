@@ -1,7 +1,5 @@
-import json
-from enum import Enum, auto
 from dataclasses import dataclass
-
+import json
 
 @dataclass
 class RobotConfig:
@@ -42,17 +40,3 @@ class RobotConfig:
             )
         except (KeyError, TypeError, json.JSONDecodeError) as e:
             raise ValueError(f"Invalid JSON for RobotConfig: {e}") from e
-
-
-class RobotStatus(Enum):
-    """Represent the possible operational states of a robot."""
-
-    IDLE = auto()
-    CHARGING = auto()
-    EXECUTING = auto()
-    MOVING = auto()
-    ERROR = auto()
-
-    # Drone-specific states
-    FLYING = auto()
-    LANDING = auto()

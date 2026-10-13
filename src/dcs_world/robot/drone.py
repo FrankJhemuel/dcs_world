@@ -1,18 +1,10 @@
-from copy import copy
-
 from .robot import Robot
-from .robot_utils import RobotConfig
+from .utils import RobotConfig, DroneObservations
 from dcs_world.geometry.pose import Position
 
-class Drone(Robot):
-    """Represent a drone in the simulated world.
 
-    Attributes:
-        observations (dict[str, list[Position]]): Observed positions grouped
-            by category. Supported categories are:
-            - "POIs": Points of interest detected by the drone.
-            - "obstacles": Obstacles detected by the drone.
-    """
+class Drone(Robot):
+    """Represent a drone in the simulated world."""
 
     def __init__(
         self,
@@ -37,11 +29,6 @@ class Drone(Robot):
                 is not a RobotConfig instance.
             ValueError: If the initial battery charge is outside the range
                 [0, 100] or the configuration is invalid.
-
-        Notes:
-            The initial state and configuration are initialized by the
-            Robot base class. The drone's observation categories are
-            initialized with empty lists.
         """
         super().__init__(
             init_x=init_x,
@@ -51,62 +38,19 @@ class Drone(Robot):
             config=config,
         )
 
-        self.observations: dict[str, list[Position]] = {
-            "POIs": [],
-            "obstacles": [],
-        }
+        self.observations: DroneObservations = DroneObservations()
 
     def update_observations(
         self,
-        new_observations: dict[str, list[Position]],
+        new_observations: DroneObservations,
     ) -> None:
-        """Update the drone's observations with newly detected positions.
+        """Merge newly detected observations into the drone's observations."""
+        self.observations.update(new_observations)
 
-        Args:
-            new_observations (dict[str, list[Position]]): Dictionary mapping
-                observation categories to lists of observed positions.
-
-        Raises:
-            KeyError: If an observation category is not supported by the
-                drone's observations dictionary.
-
-        Notes:
-            Only positions not already present in their respective
-            categories are added. Each new position is copied before
-            being stored to avoid sharing object references.
-        """
-        for key, positions in new_observations.items():
-            if key not in self.observations:
-                raise KeyError(f"Unknown observation category: {key}")
-
-            for position in positions:
-                if position not in self.observations[key]:
-                    self.observations[key].append(copy(position))
-                    
     def add_POI_observation(self, position: Position) -> None:
-        """Add a point of interest (POI) observation.
-
-        Args:
-            position (Position): Position of the observed point of interest.
-
-        Notes:
-            The position is added only if it is not already present in the
-            POI observations. A copy is stored to avoid sharing object
-            references.
-        """
-        if position not in self.observations["POIs"]:
-            self.observations["POIs"].append(copy(position))
+        """Add a point of interest (POI) observation."""
+        self.observations.add_poi(position)
 
     def add_obstacle_observation(self, position: Position) -> None:
-        """Add an obstacle observation.
-
-        Args:
-            position (Position): Position of the observed obstacle.
-
-        Notes:
-            The position is added only if it is not already present in the
-            obstacle observations. A copy is stored to avoid sharing object
-            references.
-        """
-        if position not in self.observations["obstacles"]:
-            self.observations["obstacles"].append(copy(position))
+        """Add an obstacle observation."""
+        self.observations.add_obstacle(position)

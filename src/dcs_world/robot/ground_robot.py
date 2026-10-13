@@ -1,11 +1,11 @@
-from copy import copy
-
 from .robot import Robot
-from .robot_utils import RobotConfig
+from .utils import RobotConfig, GroundRobotObservations
 from dcs_world.geometry.pose import Position
 
 
 class GroundRobot(Robot):
+    """Represent a ground robot in the simulated world."""
+
     def __init__(
         self,
         init_x: float,
@@ -38,65 +38,14 @@ class GroundRobot(Robot):
             config=config,
         )
 
-        self.observations: dict[
-            str,
-            list[Position] | dict[tuple[float, float], int],
-        ] = {
-            "buildings": [],
-            "n_civilians": {},
-        }
+        self.observations: GroundRobotObservations = GroundRobotObservations()
 
     def update_observations(
         self,
-        new_observations: dict[
-            str,
-            list[Position] | dict[tuple[float, float], int],
-        ],
+        new_observations: GroundRobotObservations,
     ) -> None:
-        """Update the ground robot's observations with newly detected data.
-
-        Args:
-            new_observations: Dictionary mapping observation categories to
-                lists of building positions or dictionaries of civilian counts.
-
-        Raises:
-            KeyError: If an observation category is not supported.
-            TypeError: If the observation data has an invalid type.
-
-        Notes:
-            New positions are added only if they have not already been
-            observed. Existing civilian counts are incremented when the
-            same coordinates are observed again.
-        """
-        for key, data in new_observations.items():
-            if key not in self.observations:
-                raise KeyError(f"Unknown observation category: {key}")
-
-            if key == "buildings":
-                if not isinstance(data, list):
-                    raise TypeError(
-                        "'buildings' observations must be a list of Position objects."
-                    )
-                for position in data:
-                    if not isinstance(position, Position):
-                        raise TypeError(
-                            "Each building observation must be a Position."
-                        )
-                    if position not in self.observations["buildings"]:
-                        self.observations["buildings"].append(copy(position))
-            elif key == "n_civilians":
-                if not isinstance(data, dict):
-                    raise TypeError(
-                        "'n_civilians' observations must be a dictionary."
-                    )
-
-                n_civilians = self.observations["n_civilians"]
-
-                for coordinates, count in data.items():
-                    if coordinates not in n_civilians:
-                        n_civilians[coordinates] = count
-                    else:
-                        n_civilians[coordinates] += count
+        """Merge newly detected observations into the ground robot's observations."""
+        self.observations.update(new_observations)
 
     def add_civ_observation(
         self,
@@ -106,21 +55,11 @@ class GroundRobot(Robot):
         """Add or update a civilian observation.
 
         Args:
-            position (Position): Position of buildings that contained civilians.
+            position (Position): Position of the building containing civilians.
             count (int): Number of civilians observed at this building.
 
         Notes:
-            If the position has not been observed before, it is added to the
-            observations list and its civilian count is initialized.
-            Otherwise, the existing civilian count is incremented.
+            The building is registered if it has not already been observed.
+            The civilian count is accumulated at the specified coordinates.
         """
-        buildings = self.observations["buildings"]
-        n_civilians = self.observations["n_civilians"]
-
-        coordinates = (position.x, position.y)
-
-        if position not in buildings:
-            buildings.append(copy(position))
-            n_civilians[coordinates] = count
-        else:
-            n_civilians[coordinates] += count
+        self.observations.add_civilians(position, count)

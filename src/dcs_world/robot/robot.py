@@ -1,7 +1,7 @@
 import numpy as np
 
 from dcs_world.geometry.pose import Pose
-from .robot_utils import RobotStatus, RobotConfig
+from .utils import RobotStatus, RobotConfig
 
 
 class Robot():
