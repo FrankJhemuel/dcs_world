@@ -1,5 +1,6 @@
 from .robot import Robot
-from .utils import RobotConfig, GroundRobotObservations
+from .utils import RobotConfig
+from dcs_world.observation import GroundRobotObservations
 from dcs_world.geometry.pose import Position
 
 
