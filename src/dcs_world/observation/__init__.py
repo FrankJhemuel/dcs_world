@@ -1,9 +1,9 @@
-from .drone_observations import DroneObservations
-from .ground_robot_observations import GroundRobotObservations
-from .robot_observations import RobotObservations
+from .drone_observation import DroneObservation
+from .ground_robot_observation import GroundRobotObservation
+from .robot_observation import RobotObservation
 
 __all__ = [
-    "DroneObservations",
-    "GroundRobotObservations",
-    "RobotObservations",
+    "DroneObservation",
+    "GroundRobotObservation",
+    "RobotObservation",
 ]
