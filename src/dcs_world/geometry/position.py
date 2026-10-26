@@ -23,10 +23,10 @@ class Position():
     
     @as_np_array.setter
     def as_np_array(self, value: np.ndarray) -> None:
-        """Set the pose from a NumPy array.
+        """Set the position from a NumPy array.
 
         Args:
-            value: Array containing [x, y, yaw].
+            value: Array containing [x, y].
 
         Raises:
             TypeError: If value is not a NumPy array or contains
@@ -35,15 +35,15 @@ class Position():
                 non-finite values.
         """
         if not isinstance(value, np.ndarray):
-            raise TypeError("Pose array must be a NumPy ndarray.")
+            raise TypeError("Position array must be a NumPy ndarray.")
 
         if value.shape != (2,):
-            raise ValueError("Pose array must have shape (2,).")
+            raise ValueError("Position array must have shape (2,).")
 
         if not np.issubdtype(value.dtype, np.number):
-            raise TypeError("Pose array must contain numeric values.")
+            raise TypeError("Position array must contain numeric values.")
 
         if not np.all(np.isfinite(value)):
-            raise ValueError("Pose array must contain only finite values.")
+            raise ValueError("Position array must contain only finite values.")
 
-        self.x, self.y, self.yaw = map(float, value)
+        self.x, self.y = map(float, value)
