@@ -37,20 +37,3 @@ class Drone(Robot):
             init_charge=init_charge,
             config=config,
         )
-
-        self.observations: DroneObservations = DroneObservations()
-
-    def update_observations(
-        self,
-        new_observations: DroneObservations,
-    ) -> None:
-        """Merge new observations into the drone's existing observations."""
-        self.observations.update(new_observations)
-
-    def add_POI_observation(self, position: Position) -> None:
-        """Add a point of interest (POI) observation."""
-        self.observations.add_poi(position)
-
-    def add_obstacle_observation(self, position: Position) -> None:
-        """Add an obstacle observation."""
-        self.observations.add_obstacle(position)

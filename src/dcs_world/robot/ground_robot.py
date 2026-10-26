@@ -1,6 +1,6 @@
 from .robot import Robot
 from .utils import RobotConfig
-from dcs_world.observation import GroundRobotObservations
+from dcs_world.observation import GroundRobotObservation
 from dcs_world.geometry.pose import Position
 
 
@@ -38,29 +38,4 @@ class GroundRobot(Robot):
             init_charge=init_charge,
             config=config,
         )
-
-        self.observations: GroundRobotObservations = GroundRobotObservations()
-
-    def update_observations(
-        self,
-        new_observations: GroundRobotObservations,
-    ) -> None:
-        """Merge newly detected observations into the ground robot's observations."""
-        self.observations.update(new_observations)
-
-    def add_civ_observation(
-        self,
-        position: Position,
-        count: int,
-    ) -> None:
-        """Add or update a civilian observation.
-
-        Args:
-            position (Position): Position of the building containing civilians.
-            count (int): Number of civilians observed at this building.
-
-        Notes:
-            The building is registered if it has not already been observed.
-            The civilian count is accumulated at the specified coordinates.
-        """
-        self.observations.add_civilians(position, count)
+        

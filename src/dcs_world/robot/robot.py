@@ -1,4 +1,5 @@
 import numpy as np
+import uuid
 
 from dcs_world.geometry.pose import Pose
 from .utils import RobotStatus, RobotConfig
@@ -71,7 +72,9 @@ class Robot():
 
         if not isinstance(config, RobotConfig):
             raise TypeError("config must be an instance of RobotConfig.")
-
+        
+        self.id = str(uuid.uuid4())  # Unique identifier for the robot
+        
         # Initialize state
         self._pose = Pose(
             x=float(init_x),
@@ -83,6 +86,13 @@ class Robot():
 
         # Store configuration
         self.config = config
+        
+        
+        self.observations: list[dict] = []
+        
+    def add_observation(self, observation: dict) -> None:
+        """Add an observation to the robot's observations list."""
+        self.observations.append(observation)
 
     @property
     def pose(self) -> Pose:
