@@ -33,7 +33,7 @@ class DroneObservations(RobotObservations):
         if position not in self.obstacles:
             self.obstacles.append(copy(position))
 
-    def update(self, new_observations: "DroneObservations") -> None:
+    def merge_new_observations(self, new_observations: "DroneObservations") -> None:
         """Merge another set of drone observations.
 
         Args:

@@ -88,7 +88,7 @@ class GroundRobotObservations(RobotObservations):
             self._add_building(position)
             self.n_civilians[coordinates] = count
 
-    def update(self, new_observations: "GroundRobotObservations") -> None:
+    def merge_new_observations(self, new_observations: "GroundRobotObservations") -> None:
         """Merge another set of ground robot observations into this instance.
 
         Args:
