@@ -150,6 +150,21 @@ class Map:
 
         self.buildings.append(building)
 
+    def get_building(self, position: Position) -> Building | None:
+        """Retrieve a building at a specific position.
+
+        Args:
+            position: The position to check for a building.
+
+        Returns:
+            The building at the specified position, or None if no
+            building exists there.
+        """
+        for building in self.buildings:
+            if building.position == position:
+                return building
+        return None
+    
     def add_road_intersection(self, intersection: Position) -> None:
         """Add an intersection to the road network."""
         if not isinstance(intersection, Position):
