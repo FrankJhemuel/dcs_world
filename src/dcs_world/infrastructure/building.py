@@ -121,3 +121,7 @@ class Building:
             "clear_time": clear_time,
             "can_collapse": can_collapse,
         }
+
+    def __str__(self) -> str:
+        """Return a string representation of the building."""
+        return f"Building(position={self.position}, poi_status={self._poi_status})"
