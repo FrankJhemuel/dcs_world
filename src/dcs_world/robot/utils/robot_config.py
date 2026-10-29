@@ -14,6 +14,7 @@ class RobotConfig:
     id: str
     max_speed: float
     max_accel: float
+    charge_use_rate_per_meter: float = 0.1  # Default charge use rate per meter traveled
 
     @classmethod
     def from_json(cls, json_str: str) -> "RobotConfig":
@@ -21,7 +22,7 @@ class RobotConfig:
 
         Args:
             json_str (str): JSON string containing the robot configuration.
-                Expected keys are 'id', 'max_speed', and 'max_accel'.
+                Expected keys are 'id', 'max_speed', 'max_accel', and 'charge_use_rate_per_meter'.
 
         Raises:
             ValueError: If the JSON is invalid, a required key is missing,
@@ -37,6 +38,7 @@ class RobotConfig:
                 id=data["id"],
                 max_speed=data["max_speed"],
                 max_accel=data["max_accel"],
+                charge_use_rate_per_meter=data["charge_use_rate_per_meter"],
             )
         except (KeyError, TypeError, json.JSONDecodeError) as e:
             raise ValueError(f"Invalid JSON for RobotConfig: {e}") from e

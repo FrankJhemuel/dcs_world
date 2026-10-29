@@ -84,6 +84,8 @@ class Robot():
         self.charge = float(init_charge)
         self.status = RobotStatus.IDLE
 
+        self._velocity = np.zeros(3)  # [vx, vy, omega] in m/s and rad/s
+        
         # Store configuration
         self.config = config
         
@@ -94,23 +96,64 @@ class Robot():
         """Add an observation to the robot's observations list."""
         self.observations.append(observation)
 
+    def clear_observations(self) -> None:
+        """Clear the robot's observations list."""
+        self.observations.clear()
+        
     @property
-    def pose(self) -> Pose:
+    def pose(self) -> np.ndarray:
         """Return a copy of the robot's current pose.
 
         Returns:
-            Pose: A new Pose instance containing the current position
-                and orientation of the robot.
+            np.ndarray: A one-dimensional NumPy array containing the
+                current position and orientation of the robot.
 
         Notes:
             Returning a copy prevents external modifications from directly
             changing the robot's internal pose.
         """
-        return Pose(
-            x=self._pose.x,
-            y=self._pose.y,
-            yaw=self._pose.yaw,
-        )
+        return np.array([self._pose.x, self._pose.y, self._pose.yaw])
+
+    @property
+    def velocity(self) -> np.ndarray:
+        """Return a copy of the robot's current velocity.
+
+        Returns:
+            np.ndarray: A one-dimensional NumPy array containing the
+                current velocity components [vx, vy, omega], where vx
+                and vy are translational velocities in m/s and omega is
+                the angular velocity in rad/s.
+
+        Notes:
+            Returning a copy prevents external modifications from directly
+            changing the robot's internal velocity.
+        """
+        return self._velocity.copy()
+
+    @velocity.setter
+    def velocity(self, value: np.ndarray) -> None:
+        """Set the robot's current velocity.
+
+        Args:
+            value (np.ndarray): A one-dimensional NumPy array containing
+                the new velocity components [vx, vy, omega], where vx and
+                vy are translational velocities in m/s and omega is the
+                angular velocity in rad/s.
+
+        Raises:
+            TypeError: If value is not a NumPy array.
+            ValueError: If value does not have shape (3,).
+
+        Notes:
+            This method updates the robot's internal velocity.
+        """
+        if not isinstance(value, np.ndarray):
+            raise TypeError("velocity must be a NumPy array.")
+
+        if value.shape != (3,):
+            raise ValueError("velocity must have shape (3,).")
+
+        self._velocity = value.copy()
 
     @property
     def telemetry(self) -> dict:
@@ -120,15 +163,31 @@ class Robot():
             dict: A dictionary containing the robot's current pose,
                 battery charge, and operational status. The dictionary
                 has the following keys:
-                - "pose": Current pose as a Pose instance.
+                - "pose": Current pose as a NumPy array.
+                - "velocity": Current velocity as a NumPy array.
                 - "charge": Current battery charge as a percentage.
                 - "status": Current operational status as a RobotStatus.
         """
         return {
             "pose": self.pose,
+            "velocity": self.velocity,
             "charge": self.charge,
             "status": self.status,
         }
+        
+    @property
+    def use_rate(self) -> float:
+        """Return the robot's charge use rate per meter traveled.
+
+        Returns:
+            float: The charge use rate in percentage per meter.
+
+        Notes:
+            This value is derived from the robot's configuration and
+            represents how much battery charge is consumed for each
+            meter the robot travels.
+        """
+        return self.config.charge_use_rate_per_meter
 
     def move(self, cmd_vel: np.ndarray, dt: float) -> None:
         """Update the robot's pose according to a velocity command.
