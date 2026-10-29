@@ -12,5 +12,5 @@ class DroneObservation(RobotObservation):
         return {
             "timestamp": timestamp,
             "type": "poi",
-            "poi": copy(position)
+            "position": copy(position)
         }

@@ -11,5 +11,5 @@ class RobotObservation():
         return {
             "timestamp": timestamp,
             "type": "obstacle",
-            "obstacle": copy(position)
+            "position": copy(position)
         }
