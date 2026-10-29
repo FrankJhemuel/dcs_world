@@ -39,7 +39,7 @@ class Map:
             max_building_size: Maximum building dimension.
 
         Notes:
-            - The road network contains grid intersections.
+            - The road network contains grid intersections and connections.
             - Buildings are placed at block centers.
             - Obstacles are placed along connections between intersections.
             - Existing map contents are replaced.
@@ -84,10 +84,26 @@ class Map:
             for row in range(rows + 1)
         ]
 
-        # Store all intersections in the road network.
+        # Register all intersections in the road network.
         for row in intersections:
             for intersection in row:
-                self.add_road_intersection(intersection)
+                self.road_network.add_intersection(intersection)
+
+        # Connect adjacent horizontal intersections.
+        for row in range(rows + 1):
+            for col in range(cols):
+                self.road_network.connect_intersections(
+                    intersections[row][col],
+                    intersections[row][col + 1],
+                )
+
+        # Connect adjacent vertical intersections.
+        for row in range(rows):
+            for col in range(cols + 1):
+                self.road_network.connect_intersections(
+                    intersections[row][col],
+                    intersections[row + 1][col],
+                )
 
         # Generate buildings at block centers.
         for row in range(rows):
@@ -104,8 +120,7 @@ class Map:
                 building = Building(center)
                 self.add_building(building)
 
-        # Generate obstacles along connections between adjacent
-        # horizontal intersections.
+        # Generate obstacles on horizontal road segments.
         for row in range(rows + 1):
             for col in range(cols):
                 if rng.random() >= obstacle_probability:
@@ -114,7 +129,7 @@ class Map:
                 start = intersections[row][col]
                 end = intersections[row][col + 1]
 
-                # Avoid placing obstacles directly at intersections.
+                # Place the obstacle between the intersections.
                 t = rng.uniform(0.2, 0.8)
 
                 position = Position(
@@ -124,8 +139,7 @@ class Map:
 
                 self.add_obstacle(position)
 
-        # Generate obstacles along connections between adjacent
-        # vertical intersections.
+        # Generate obstacles on vertical road segments.
         for row in range(rows):
             for col in range(cols + 1):
                 if rng.random() >= obstacle_probability:
@@ -134,6 +148,7 @@ class Map:
                 start = intersections[row][col]
                 end = intersections[row + 1][col]
 
+                # Place the obstacle between the intersections.
                 t = rng.uniform(0.2, 0.8)
 
                 position = Position(
@@ -164,7 +179,7 @@ class Map:
             if building.position == position:
                 return building
         return None
-    
+
     def add_road_intersection(self, intersection: Position) -> None:
         """Add an intersection to the road network."""
         if not isinstance(intersection, Position):
@@ -193,5 +208,5 @@ class Map:
         """Add an obstacle to the map."""
         if not isinstance(position, Position):
             raise TypeError("Expected a Position instance.")
-
-        self.obstacles.append(position)
+        if position not in self.obstacles:
+            self.obstacles.append(position)
