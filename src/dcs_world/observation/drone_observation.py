@@ -1,7 +1,7 @@
 from copy import copy
 
 from dcs_world.geometry.pose import Position
-from dcs_world.observation import RobotObservation
+from .robot_observation import RobotObservation
 
 class DroneObservation(RobotObservation):
     """Represent the observations collected by a drone."""
