@@ -9,6 +9,7 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "cbor2>=6.1.5",
+    "coppeliasim-zmqremoteapi-client>=2.0.4",
     "numpy>=2.5.4",
     "pyzmq>=27.2.0",
 ]
@@ -26,3 +27,6 @@ dev = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = ["-p", "pytest_cov"]
+
+[project.scripts]
+mission_control = "dcs_world.scripts.mission_control:main"
