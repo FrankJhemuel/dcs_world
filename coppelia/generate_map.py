@@ -27,8 +27,10 @@ OBSTACLE_SIZE = 0.1
 
 GROUND_HEIGHT = 0.2
 
-# Small offset to avoid Z-fighting between road and ground.
 ROAD_CLEARANCE = 0.001
+
+BUILDING_OPACITY = 0.5
+
 
 # Keep track of objects created by this script.
 generated_objects = []
@@ -178,7 +180,7 @@ def visualize_buildings(world_map):
             BUILDING_MAX_SIZE
         )
 
-        create_box(
+        handle = create_box(
             f"GeneratedMap_Building_{index}",
             [
                 position.x,
@@ -191,6 +193,13 @@ def visualize_buildings(world_map):
                 BUILDING_HEIGHT
             ],
             [0.65, 0.65, 0.70]
+        )
+        
+        sim.setShapeColor(
+            handle,
+            "",
+            sim.colorcomponent_transparency,
+            [BUILDING_OPACITY]
         )
 
 

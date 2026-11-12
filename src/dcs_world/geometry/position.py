@@ -47,3 +47,12 @@ class Position():
             raise ValueError("Position array must contain only finite values.")
 
         self.x, self.y = map(float, value)
+        
+        
+    def __hash__(self):
+        """Compute a hash value for the Position instance.
+
+        Returns:
+            int: A hash value based on the x and y coordinates.
+        """
+        return hash((self.x, self.y))
