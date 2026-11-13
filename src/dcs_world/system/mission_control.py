@@ -47,6 +47,14 @@ class MissionControl:
         
         self.ground_robots[ground_robot.id] = ground_robot
 
+    def get_drone(self, id: str) -> RobotModel | None:
+        """Retrieve a drone by its ID."""
+        return self.drones.get(id)
+
+    def get_ground_robot(self, id: str) -> RobotModel | None:
+        """Retrieve a ground robot by its ID."""
+        return self.ground_robots.get(id)
+
     def update_robot(self, id: str, updated_robot: RobotModel):
         """Update the information of an existing robot in the mission control system."""
         if not isinstance(updated_robot, RobotModel):
