@@ -13,5 +13,5 @@ wheels/
 .vscode/
 .env
 .coverage
-coppelia_sim/
+*.ttt
 \*_*
