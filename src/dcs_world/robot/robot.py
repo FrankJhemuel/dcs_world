@@ -14,6 +14,12 @@ class Robot():
         config (RobotConfig): Configuration parameters of the robot.
     """
 
+    DEFAULT_CONFIG = RobotConfig(
+        max_speed=1.0,
+        max_acceleration=0.5,
+        charge_use_rate_per_meter=0.1,
+    )
+    
     def __init__(
         self,
         init_x: float = 0.0,
