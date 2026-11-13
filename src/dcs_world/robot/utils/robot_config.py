@@ -10,10 +10,9 @@ class RobotConfig:
         max_speed (float): Maximum allowed speed of the robot.
         max_accel (float): Maximum allowed acceleration of the robot.
     """
-
-    id: str
-    max_speed: float
-    max_accel: float
+    
+    max_speed: float = 1.0
+    max_accel: float = 0.5
     charge_use_rate_per_meter: float = 0.1  # Default charge use rate per meter traveled
 
     @classmethod
@@ -35,7 +34,6 @@ class RobotConfig:
         try:
             data = json.loads(json_str)
             return cls(
-                id=data["id"],
                 max_speed=data["max_speed"],
                 max_accel=data["max_accel"],
                 charge_use_rate_per_meter=data["charge_use_rate_per_meter"],
