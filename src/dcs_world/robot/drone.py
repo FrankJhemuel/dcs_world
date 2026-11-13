@@ -1,7 +1,5 @@
 from .robot import Robot
 from .utils import RobotConfig
-from dcs_world.observation import DroneObservation
-from dcs_world.geometry.pose import Position
 
 
 class Drone(Robot):
