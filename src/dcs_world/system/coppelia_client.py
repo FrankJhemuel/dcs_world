@@ -36,28 +36,3 @@ class CoppeliaClient:
     def disconnect(self):
         """Close the connection to CoppeliaSim."""
         self.client.close()
-
-
-    def wait_for_robot(self, robot_id: str, timeout: float = 30.0) -> dict:
-        """Wait for a robot's initialization information."""
-        
-        property_name = f"signal.dcs_world.{robot_id}.init"
-        
-        start_time = time.monotonic()
-
-        while time.monotonic() - start_time < timeout:
-
-            data = self.sim.getStringProperty(
-                self.sim.handle_scene,
-                property_name,
-                {"noError": True}
-            )
-
-            if data is not None:
-                return json.loads(data)
-
-            time.sleep(0.1)
-
-        raise TimeoutError(
-            f"Robot '{robot_id}' initialization timed out."
-        )
