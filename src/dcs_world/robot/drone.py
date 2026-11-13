@@ -1,3 +1,5 @@
+from dcs_world.geometry.pose import Pose
+
 from .robot import Robot
 from .utils import RobotConfig
 
@@ -7,11 +9,9 @@ class Drone(Robot):
 
     def __init__(
         self,
-        init_x: float,
-        init_y: float,
-        init_yaw: float,
-        init_charge: float,
-        config: RobotConfig,
+        init_pose: Pose | None = None,
+        init_soc: float = 100.0,
+        config: RobotConfig = Robot.DEFAULT_CONFIG,
     ) -> None:
         """Initialize the drone with its initial state and configuration.
 
@@ -19,7 +19,7 @@ class Drone(Robot):
             init_x: Initial x-coordinate of the drone.
             init_y: Initial y-coordinate of the drone.
             init_yaw: Initial orientation in radians.
-            init_charge: Initial battery charge as a percentage
+            init_soc: Initial state of charge as a percentage
                 between 0 and 100.
             config: Configuration parameters of the drone.
 
@@ -29,9 +29,7 @@ class Drone(Robot):
             a DroneObservations instance.
         """
         super().__init__(
-            init_x=init_x,
-            init_y=init_y,
-            init_yaw=init_yaw,
-            init_charge=init_charge,
+            init_pose=init_pose,
+            init_soc=init_soc,
             config=config,
         )

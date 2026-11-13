@@ -1,3 +1,5 @@
+from dcs_world.geometry.pose import Pose
+
 from .robot import Robot
 from .utils import RobotConfig
 
@@ -7,11 +9,9 @@ class GroundRobot(Robot):
 
     def __init__(
         self,
-        init_x: float,
-        init_y: float,
-        init_yaw: float,
-        init_charge: float,
-        config: RobotConfig,
+        init_pose: Pose | None = None,
+        init_soc: float = 100.0,
+        config: RobotConfig = Robot.DEFAULT_CONFIG,
     ) -> None:
         """Initialize the ground robot with its initial state and configuration.
 
@@ -19,7 +19,7 @@ class GroundRobot(Robot):
             init_x (float): Initial x-coordinate of the ground robot.
             init_y (float): Initial y-coordinate of the ground robot.
             init_yaw (float): Initial orientation in radians.
-            init_charge (float): Initial battery charge as a percentage
+            init_soc (float): Initial state of charge as a percentage
                 between 0 and 100.
             config (RobotConfig): Configuration parameters of the ground robot.
 
@@ -30,10 +30,8 @@ class GroundRobot(Robot):
                 [0, 100] or the configuration is invalid.
         """
         super().__init__(
-            init_x=init_x,
-            init_y=init_y,
-            init_yaw=init_yaw,
-            init_charge=init_charge,
+            init_pose=init_pose,
+            init_soc=init_soc,
             config=config,
         )
         

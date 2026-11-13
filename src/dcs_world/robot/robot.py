@@ -16,25 +16,21 @@ class Robot():
 
     DEFAULT_CONFIG = RobotConfig(
         max_speed=1.0,
-        max_acceleration=0.5,
+        max_accel=0.5,
         charge_use_rate_per_meter=0.1,
     )
     
     def __init__(
         self,
-        init_x: float = 0.0,
-        init_y: float = 0.0,
-        init_yaw: float = 0.0,
+        init_pose: Pose | None = None,
         init_soc: float = 100.0,
-        config: RobotConfig | None = None,
+        config: RobotConfig = DEFAULT_CONFIG,
     ) -> None:
         """Initialize the robot's state and configuration.
 
         Args:
-            init_x (float, optional): Initial x-coordinate. Defaults to 0.0.
-            init_y (float, optional): Initial y-coordinate. Defaults to 0.0.
-            init_yaw (float, optional): Initial orientation in radians.
-                Defaults to 0.0.
+            init_pose (Pose | None, optional): Initial pose of the robot.
+                Defaults to None, which means the robot will be initialized at the origin.
             init_soc (float, optional): Initial state of charge as a
                 percentage between 0 and 100. Defaults to 100.0.
             config (RobotConfig | None, optional): Robot configuration.
@@ -54,9 +50,6 @@ class Robot():
 
         # Validate numeric inputs
         numeric_params = {
-            "init_x": init_x,
-            "init_y": init_y,
-            "init_yaw": init_yaw,
             "init_soc": init_soc,
         }
 
@@ -82,11 +75,15 @@ class Robot():
         self.id = str(uuid.uuid4())  # Unique identifier for the robot
         
         # Initialize state
-        self._pose = Pose(
-            x=float(init_x),
-            y=float(init_y),
-            yaw=float(init_yaw),
-        )
+        if init_pose is None:
+            self._pose = Pose(
+                x=0.0,
+                y=0.0,
+                yaw=0.0,
+            )
+        else:
+            self._pose = init_pose
+            
         self.soc = float(init_soc)
         self.status = RobotStatus.IDLE
 
@@ -120,7 +117,7 @@ class Robot():
             Returning a copy prevents external modifications from directly
             changing the robot's internal pose.
         """
-        return Pose(x=self._pose.x, y=self._pose.y, yaw=self._pose.yaw)
+        return self._pose.copy()
 
     @property
     def velocity(self) -> Twist:
@@ -217,5 +214,27 @@ class Robot():
             raise ValueError("dt must be finite and positive.")
 
         # Update the robot's pose based on the commanded velocity and time step
-        delta_pose = cmd_vel * dt
-        self._pose = self._pose + delta_pose
+        # Convert Twist to numpy array
+        cmd_vel_array = np.array([
+            cmd_vel.linear.x,
+            cmd_vel.linear.y,
+            cmd_vel.angular.z
+        ])
+
+        # Calculate displacement
+        delta_pose_array = cmd_vel_array * dt
+
+        # Convert current pose to numpy array
+        current_pose_array = np.array([
+            self._pose.position.x,
+            self._pose.position.y,
+            self._pose.orientation.z
+        ])
+
+        # Update pose
+        new_pose_array = current_pose_array + delta_pose_array
+
+        # Update Pose
+        self._pose.position.x = new_pose_array[0]
+        self._pose.position.y = new_pose_array[1]
+        self._pose.orientation.z = new_pose_array[2]
