@@ -1,7 +1,7 @@
 import numpy as np
 import uuid
 
-from dcs_world.geometry.pose import Pose
+from dcs_world.geometry import Pose, Twist, Vector3
 from .utils import RobotStatus, RobotConfig
 
 
@@ -19,7 +19,7 @@ class Robot():
         init_x: float = 0.0,
         init_y: float = 0.0,
         init_yaw: float = 0.0,
-        init_charge: float = 100.0,
+        init_soc: float = 100.0,
         config: RobotConfig | None = None,
     ) -> None:
         """Initialize the robot's state and configuration.
@@ -29,7 +29,7 @@ class Robot():
             init_y (float, optional): Initial y-coordinate. Defaults to 0.0.
             init_yaw (float, optional): Initial orientation in radians.
                 Defaults to 0.0.
-            init_charge (float, optional): Initial battery charge as a
+            init_soc (float, optional): Initial state of charge as a
                 percentage between 0 and 100. Defaults to 100.0.
             config (RobotConfig | None, optional): Robot configuration.
                 Must be a RobotConfig instance. Defaults to None.
@@ -51,7 +51,7 @@ class Robot():
             "init_x": init_x,
             "init_y": init_y,
             "init_yaw": init_yaw,
-            "init_charge": init_charge,
+            "init_soc": init_soc,
         }
 
         for name, value in numeric_params.items():
@@ -63,8 +63,8 @@ class Robot():
             raise ValueError("Numeric parameters must be finite.")
 
         # Validate ranges
-        if not 0.0 <= init_charge <= 100.0:
-            raise ValueError("Initial charge must be between 0 and 100.")
+        if not 0.0 <= init_soc <= 100.0:
+            raise ValueError("Initial state of charge must be between 0 and 100.")
 
         # Validate configuration
         if config is None:
@@ -81,10 +81,13 @@ class Robot():
             y=float(init_y),
             yaw=float(init_yaw),
         )
-        self.charge = float(init_charge)
+        self.soc = float(init_soc)
         self.status = RobotStatus.IDLE
 
-        self._velocity = np.zeros(3)  # [vx, vy, omega] in m/s and rad/s
+        self._velocity = Twist(
+            linear=Vector3(),
+            angular=Vector3()
+        )  # [vx, vy, omega] in m/s and rad/s
         
         # Store configuration
         self.config = config
@@ -101,28 +104,24 @@ class Robot():
         self.observations.clear()
         
     @property
-    def pose(self) -> np.ndarray:
+    def pose(self) -> Pose:
         """Return a copy of the robot's current pose.
 
         Returns:
-            np.ndarray: A one-dimensional NumPy array containing the
-                current position and orientation of the robot.
+            Pose: A Pose object containing the current position and orientation of the robot.
 
         Notes:
             Returning a copy prevents external modifications from directly
             changing the robot's internal pose.
         """
-        return np.array([self._pose.x, self._pose.y, self._pose.yaw])
+        return Pose(x=self._pose.x, y=self._pose.y, yaw=self._pose.yaw)
 
     @property
-    def velocity(self) -> np.ndarray:
+    def velocity(self) -> Twist:
         """Return a copy of the robot's current velocity.
 
         Returns:
-            np.ndarray: A one-dimensional NumPy array containing the
-                current velocity components [vx, vy, omega], where vx
-                and vy are translational velocities in m/s and omega is
-                the angular velocity in rad/s.
+            Twist: A Twist object containing the current velocity components.
 
         Notes:
             Returning a copy prevents external modifications from directly
@@ -131,27 +130,20 @@ class Robot():
         return self._velocity.copy()
 
     @velocity.setter
-    def velocity(self, value: np.ndarray) -> None:
+    def velocity(self, value: Twist) -> None:
         """Set the robot's current velocity.
 
         Args:
-            value (np.ndarray): A one-dimensional NumPy array containing
-                the new velocity components [vx, vy, omega], where vx and
-                vy are translational velocities in m/s and omega is the
-                angular velocity in rad/s.
+            value (Twist): A Twist object containing the new velocity components.
 
         Raises:
-            TypeError: If value is not a NumPy array.
-            ValueError: If value does not have shape (3,).
+            TypeError: If value is not a Twist object.
 
         Notes:
             This method updates the robot's internal velocity.
         """
-        if not isinstance(value, np.ndarray):
-            raise TypeError("velocity must be a NumPy array.")
-
-        if value.shape != (3,):
-            raise ValueError("velocity must have shape (3,).")
+        if not isinstance(value, Twist):
+            raise TypeError("velocity must be a Twist object.")
 
         self._velocity = value.copy()
 
@@ -163,8 +155,8 @@ class Robot():
             dict: A dictionary containing the robot's current pose,
                 battery charge, and operational status. The dictionary
                 has the following keys:
-                - "pose": Current pose as a NumPy array.
-                - "velocity": Current velocity as a NumPy array.
+                - "pose": Current pose as a Pose object.
+                - "velocity": Current velocity as a Twist object.
                 - "charge": Current battery charge as a percentage.
                 - "status": Current operational status as a RobotStatus.
         """
@@ -189,21 +181,18 @@ class Robot():
         """
         return self.config.charge_use_rate_per_meter
 
-    def move(self, cmd_vel: np.ndarray, dt: float) -> None:
+    def move(self, cmd_vel: Twist, dt: float) -> None:
         """Update the robot's pose according to a velocity command.
 
         Args:
-            cmd_vel (np.ndarray): One-dimensional NumPy array containing
-                the velocity components [vx, vy, omega], where vx and vy
-                are translational velocities and omega is the angular
-                velocity.
+            cmd_vel (Twist): A Twist object containing the velocity components.
             dt (float): Time step in seconds over which the velocity
                 command is applied.
 
         Raises:
-            TypeError: If cmd_vel is not a NumPy array or dt is not numeric.
-            ValueError: If cmd_vel does not have shape (3,) or dt is not
-                finite and positive.
+            TypeError: If cmd_vel is not a Twist object.
+            TypeError: If dt is not a numeric value.
+            ValueError: If dt is not finite or is non-positive.
 
         Notes:
             This method provides a default implementation that updates the
@@ -212,17 +201,8 @@ class Robot():
             motion models.
         """
         # Validate cmd_vel and dt
-        if not isinstance(cmd_vel, np.ndarray):
-            raise TypeError("cmd_vel must be a NumPy ndarray.")
-
-        if cmd_vel.shape != (3,):
-            raise ValueError("cmd_vel must be a 1D array with exactly 3 elements.")
-
-        if not np.issubdtype(cmd_vel.dtype, np.number):
-            raise TypeError("cmd_vel must contain numeric values.")
-
-        if not np.all(np.isfinite(cmd_vel)):
-            raise ValueError("cmd_vel must contain only finite values.")
+        if not isinstance(cmd_vel, Twist):
+            raise TypeError("cmd_vel must be a Twist object.")
 
         if isinstance(dt, bool) or not isinstance(dt, (int, float)):
             raise TypeError("dt must be a numeric value.")
@@ -232,4 +212,4 @@ class Robot():
 
         # Update the robot's pose based on the commanded velocity and time step
         delta_pose = cmd_vel * dt
-        self._pose.as_np_array = self._pose.as_np_array + delta_pose
+        self._pose = self._pose + delta_pose
