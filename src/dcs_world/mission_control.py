@@ -1,8 +1,8 @@
+import json
 import time
 
 from dcs_world.system import MissionControl
 from dcs_world.system.coppelia_client import CoppeliaClient
-from dcs_world.robot import Drone, GroundRobot
 
 from dcs_world.system.model.robot_model import RobotModel
 
@@ -12,11 +12,11 @@ from dcs_world.communication.messages import RobotStatusMessage
 
 # === CONFIGURATION ===
 
-MISSION_CONTROL_FREQUENCY = 10.0  # Hz
+MISSION_CONTROL_FREQUENCY = 5.0  # Hz
 
+mission_control = MissionControl()
 
 def on_drone_status(
-    mission_control: MissionControl,
     msg: RobotStatusMessage
 ):
     """Process incoming drone status messages."""
@@ -26,30 +26,28 @@ def on_drone_status(
     if drone is None:
     
         # === INITIALIZE DRONE ===
-
         drone = RobotModel.from_status_message(msg)
 
         mission_control.add_drone(drone)
         print(f"[MissionControl] Registered drone: {drone.id}")
+        print(json.dumps(drone.to_dict(), indent=4))
+    else:
+        # === UPDATE DRONE STATUS ===
+        mission_control.update_robot(drone.id, RobotModel.from_status_message(msg))
+        print(f"[MissionControl] Updated drone: {drone.id}")
+        print(json.dumps(drone.to_dict(), indent=4))
 
-
-
-
-def initialize_mission_control(
+def initialize_subscribers(
     coppelia: CoppeliaClient
-) -> tuple[MissionControl, list[Subscriber]]:
+) -> list[Subscriber]:
     """Initialize mission control and register its elements."""
-
-    mission_control = MissionControl()
-
-
     # === INITIALIZE COMMUNICATION ===
 
     drone_subscriber = Subscriber(
         sim=coppelia.sim,
-        topic="dcs_world.drone_1.status",
+        topic="drone_1.status",
         message_type=RobotStatusMessage,
-        callback=lambda msg: on_drone_status(mission_control, msg)
+        callback=lambda msg: on_drone_status(msg)
     )
 
     subscribers = [
@@ -58,7 +56,7 @@ def initialize_mission_control(
 
     print("[MissionControl] Communication initialized.")
 
-    return mission_control, subscribers
+    return subscribers
 
 
 def main():
@@ -69,7 +67,7 @@ def main():
     try:
 
         # Initialize mission control
-        mission_control, subscribers = initialize_mission_control(coppelia)
+        subscribers = initialize_subscribers(coppelia)
 
         period = 1.0 / MISSION_CONTROL_FREQUENCY
 
@@ -85,13 +83,8 @@ def main():
             for subscriber in subscribers:
                 subscriber.receive()
 
-            # Mission control execution
-            # mission_control.update()
-
-            print(
-                f"Registered robots: "
-                f"{len(mission_control.all_robots)}"
-            )
+            # if mission_control.get_drone("drone_1") is not None:
+            #     print(json.dumps(mission_control.get_drone("drone_1").to_dict(), indent=4))
 
             # Maintain execution frequency
             elapsed = time.perf_counter() - loop_start
@@ -99,6 +92,11 @@ def main():
 
             if remaining > 0:
                 time.sleep(remaining)
+            else:
+                print(
+                    f"[MissionControl] Warning: "
+                    f"Execution time exceeded period by {-remaining:.4f} seconds."
+                )
 
     except KeyboardInterrupt:
         print("[MissionControl] Stopping...")

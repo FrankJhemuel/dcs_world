@@ -1,6 +1,7 @@
 import numpy as np
 import uuid
 
+from dcs_world.communication.messages import RobotStatusMessage
 from dcs_world.geometry import Pose, Twist, Vector3
 from .utils import RobotStatus, RobotConfig
 
@@ -20,8 +21,11 @@ class Robot():
         charge_use_rate_per_meter=0.1,
     )
     
+    ROBOT_TYPE = "Robot"  # Default robot type; subclasses should override this
+    
     def __init__(
         self,
+        id: str | None = None,
         init_pose: Pose | None = None,
         init_soc: float = 100.0,
         config: RobotConfig = DEFAULT_CONFIG,
@@ -29,6 +33,8 @@ class Robot():
         """Initialize the robot's state and configuration.
 
         Args:
+            id (str | None, optional): Unique identifier for the robot.
+                Defaults to None, which means a unique ID will be generated.
             init_pose (Pose | None, optional): Initial pose of the robot.
                 Defaults to None, which means the robot will be initialized at the origin.
             init_soc (float, optional): Initial state of charge as a
@@ -72,7 +78,7 @@ class Robot():
         if not isinstance(config, RobotConfig):
             raise TypeError("config must be an instance of RobotConfig.")
         
-        self.id = str(uuid.uuid4())  # Unique identifier for the robot
+        self.id = str(uuid.uuid4()) if id is None else id  # Unique identifier for the robot
         
         # Initialize state
         if init_pose is None:
@@ -150,25 +156,25 @@ class Robot():
 
         self._velocity = value.copy()
 
-    @property
-    def telemetry(self) -> dict:
-        """Return the robot's current telemetry.
+    def to_robot_status_message(self) -> RobotStatusMessage:
+        """Convert the robot's state into a RobotStatusMessage.
 
         Returns:
-            dict: A dictionary containing the robot's current pose,
-                battery charge, and operational status. The dictionary
-                has the following keys:
-                - "pose": Current pose as a Pose object.
-                - "velocity": Current velocity as a Twist object.
-                - "charge": Current battery charge as a percentage.
-                - "status": Current operational status as a RobotStatus.
+            RobotStatusMessage: A message containing the robot's current state.
+
+        Notes:
+            This method is useful for communication with other systems
+            that require the robot's status in a standardized message format.
         """
-        return {
-            "pose": self.pose,
-            "velocity": self.velocity,
-            "charge": self.charge,
-            "status": self.status,
-        }
+        return RobotStatusMessage(
+            timestamp = None,
+            id=self.id,
+            robot_type=self.ROBOT_TYPE,
+            pose=self.pose,
+            velocity=self.velocity,
+            soc=self.soc,
+            status=self.status
+        )
         
     @property
     def use_rate(self) -> float:

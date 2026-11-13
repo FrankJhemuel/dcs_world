@@ -1,19 +1,24 @@
-from dcs_world.communication.messages import RobotStatusMessage
-from dcs_world.robot import Drone
-from dcs_world.geometry import Twist, Vector3, Pose
+from dcs_world.robot.drone import Drone
+from dcs_world.geometry import Twist, Pose
 from dcs_world.communication import Publisher, Subscriber
-
-STATUS_PUBLISH_TOPIC = "dcs_world.drone_1.status"
+from dcs_world.coppelia.utils import get_next_drone_id
 
 # Velocita' di prova in m/s
 TEST_VEL_X = 0.1
 TEST_VEL_Y = 0.0
 
+#* ====================================
+#* UTILITY FUNCTIONS
+#* ====================================
 
 def set_target_pose(pose: Pose, target_handle):
     sim.setObjectPosition(target_handle, -1, [pose.x, pose.y, pose.z])
     sim.setObjectOrientation(target_handle, -1, [0.0, 0.0, pose.yaw])
     
+
+#* ====================================
+#* COPPELIA SIMULATION CALLBACKS
+#* ====================================
 
 def sysCall_init():
     sim = require('sim')
@@ -21,11 +26,7 @@ def sysCall_init():
     self.drone_handle = sim.getObject('/Quadcopter')
     self.target_handle = sim.getObject('/target')
     
-    # Publishers and subscribers
-    self.status_pub = Publisher(
-        sim=sim,
-        topic=STATUS_PUBLISH_TOPIC
-    )
+    robot_id = get_next_drone_id(sim)
     
     # Initialize the drone model with its initial pose and state of charge
     init_pose = Pose.from_coordinates(
@@ -36,20 +37,19 @@ def sysCall_init():
     )
     
     self.drone = Drone(
+        id=str(robot_id),
         init_pose=init_pose,
         init_soc = 100.0,
         config = Drone.DEFAULT_CONFIG
     )
     
-    drone_status_msg = RobotStatusMessage(
-        timestamp=sim.getSimulationTime(),
-        id="drone_1",
-        robot_type="Drone",
-        pose = self.drone.pose,
-        velocity = self.drone.velocity,
-        soc = self.drone.soc,
-        status = self.drone.status
+    # Publishers and subscribers
+    self.status_pub = Publisher(
+        sim=sim,
+        topic=f"{robot_id}.status",
     )
+    
+    drone_status_msg = self.drone.to_robot_status_message()
     
     self.status_pub.publish(drone_status_msg)
 
@@ -62,14 +62,14 @@ def sysCall_actuation():
     cmd_vel_y = TEST_VEL_Y
 
     cmd_vel_twist = Twist(
-        linear=Vector3(x=cmd_vel_x, y=cmd_vel_y, z=0.0),
-        angular=Vector3(x=0.0, y=0.0, z=0.0)
+        linear=[cmd_vel_x, cmd_vel_y, 0.0],
+        angular=[0.0, 0.0, 0.0]
     )
     
     self.drone.move(cmd_vel_twist, self.dt)
     
     set_target_pose(self.drone.pose, self.target_handle)
-    # control_loop(cmd_vel_twist, self.dt)
+    self.status_pub.publish(self.drone.to_robot_status_message())
 
 
 def sysCall_sensing():

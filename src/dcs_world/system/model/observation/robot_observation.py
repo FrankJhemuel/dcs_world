@@ -2,7 +2,7 @@ from dataclasses import dataclass, asdict
 import json
 from typing import Literal
 
-from dcs_world.geometry import Position
+from dcs_world.geometry.position import Position
 
 @dataclass
 class RobotObservation():

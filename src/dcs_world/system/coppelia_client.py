@@ -35,4 +35,5 @@ class CoppeliaClient:
         
     def disconnect(self):
         """Close the connection to CoppeliaSim."""
-        self.client.close()
+        self.sim = None
+        self.client = None

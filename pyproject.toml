@@ -29,4 +29,4 @@ testpaths = ["tests"]
 addopts = ["-p", "pytest_cov"]
 
 [project.scripts]
-mission_control = "dcs_world.scripts.mission_control:main"
+mission_control = "dcs_world.mission_control:main"

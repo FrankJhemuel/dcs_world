@@ -1,7 +1,7 @@
 import random
 
 from dcs_world.infrastructure import Building, RoadNetwork
-from dcs_world.geometry import Position
+from dcs_world.geometry.position import Position
 
 
 class Map:

@@ -1,5 +1,4 @@
 from dcs_world.geometry import Position
-from dcs_world.robot import Drone, GroundRobot
 from dcs_world.world import Map
 from dcs_world.system.model.robot_model import RobotModel
 

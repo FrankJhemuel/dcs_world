@@ -10,14 +10,7 @@ from dcs_world.system.model.robot_model import RobotModel
 def message_to_model(message: RobotStatusMessage) -> RobotModel:
     """Convert a communication message into an internal robot model."""
 
-    return RobotModel(
-        id=message.id,
-        robot_type=message.robot_type,
-        pose=message.pose,
-        velocity=message.velocity,
-        soc=message.soc,
-        status=message.status
-    )
+    return RobotModel.from_status_message(message)
 
 
 def main():
