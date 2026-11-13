@@ -4,7 +4,7 @@ from .serializer import deserialize
 class Subscriber:
     def __init__(self, sim, topic: str, message_type, callback=None):
         self.sim = sim
-        self.topic = ".signal." + topic
+        self.topic = "signal." + topic
         self.message_type = message_type
         self.callback = callback
         self.last_message = None
