@@ -42,9 +42,9 @@ sim = None
 visual_rng = random.Random(SEED)
 
 
-# ============================================================
-# COPPELIASIM OBJECT CREATION
-# ============================================================
+#* ============================================================
+#* COPPELIASIM OBJECT CREATION
+#* ============================================================
 
 def create_box(name, position, size, color):
     """Create a cuboid in the CoppeliaSim scene."""
@@ -84,9 +84,10 @@ def clear_generated_objects():
     generated_objects = []
 
 
-# ============================================================
-# ROAD VISUALIZATION
-# ============================================================
+
+#* ============================================================
+#* ROAD VISUALIZATION
+#* ============================================================
 
 def create_road(start, end):
     """Create a rectangular road segment between two intersections."""
@@ -159,10 +160,9 @@ def visualize_roads(world_map):
                 grid[row + 1][col]
             )
 
-
-# ============================================================
-# BUILDING VISUALIZATION
-# ============================================================
+#* ============================================================
+#* BUILDING VISUALIZATION
+#* ============================================================
 
 def visualize_buildings(world_map):
     """Visualize buildings using their generated center positions."""
@@ -202,10 +202,9 @@ def visualize_buildings(world_map):
             [BUILDING_OPACITY]
         )
 
-
-# ============================================================
-# OBSTACLE VISUALIZATION
-# ============================================================
+#* ============================================================
+#* OBSTACLE VISUALIZATION
+#* ============================================================
 
 def visualize_obstacles(world_map):
     """Visualize obstacles standing above the road surface."""
@@ -229,10 +228,9 @@ def visualize_obstacles(world_map):
             [0.9, 0.15, 0.1]
         )
 
-
-# ============================================================
-# MAP VISUALIZATION
-# ============================================================
+#* ============================================================
+#* MAP VISUALIZATION
+#* ============================================================
 
 def visualize_map(world_map):
     """Create the complete map visualization."""
@@ -268,10 +266,9 @@ def visualize_map(world_map):
     print(f"Obstacles: {len(world_map.obstacles)}")
     print(f"Scene objects created: {len(generated_objects)}")
 
-
-# ============================================================
-# COPPELIASIM CALLBACKS
-# ============================================================
+#* ============================================================
+#* COPPELIASIM CALLBACKS
+#* ============================================================
 
 def sysCall_init():
     """Generate and visualize the map when simulation starts."""
