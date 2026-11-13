@@ -1,15 +1,19 @@
-import copy
+from dataclasses import dataclass, asdict
+import json
+from typing import Literal
 
 from dcs_world.geometry.pose import Position
 
+@dataclass
 class RobotObservation():
     """Base class for robot observations."""
+    timestamp: float
+    type: Literal["obstacle"]
+    position: Position
     
-    @staticmethod
-    def generate_obstacle_observation(timestamp: float, position: Position) -> dict:
-        """Generate an obstacle observation."""
-        return {
-            "timestamp": timestamp,
-            "type": "obstacle",
-            "position": copy(position)
-        }
+    def to_dict(self) -> dict:
+        data = asdict(self)
+        return data
+
+    def to_json(self) -> str:
+        return json.dumps(self.to_dict())
