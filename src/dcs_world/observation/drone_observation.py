@@ -2,7 +2,7 @@ from dataclasses import asdict, dataclass
 import json
 from typing import Literal
 
-from dcs_world.geometry.pose import Position
+from dcs_world.geometry import Position
 
 @dataclass
 class DroneObservation():
