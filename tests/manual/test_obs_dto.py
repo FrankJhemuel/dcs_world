@@ -1,6 +1,6 @@
 import json
 
-from dcs_world.geometry.pose import Position
+from dcs_world.geometry import Position
 from dcs_world.observation import DroneObservation, RobotObservation, GroundRobotObservation
 
 
