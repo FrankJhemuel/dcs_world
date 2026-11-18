@@ -158,13 +158,26 @@ class Map:
 
                 self.add_obstacle(position)
 
+    # * === CRUD ===
+    
+    # === OBSTACLES ===
+    
+    def add_obstacle(self, position: Position) -> None:
+        """Add an obstacle to the map."""
+        if not isinstance(position, Position):
+            raise TypeError("Expected a Position instance.")
+        if position not in self.obstacles:
+            self.obstacles.append(position)
+            
+    # === BUILDINGS ===
+    
     def add_building(self, building: Building) -> None:
         """Add a building to the map."""
         if not isinstance(building, Building):
             raise TypeError("Expected a Building instance.")
 
         self.buildings.append(building)
-
+        
     def get_building(self, position: Position) -> Building | None:
         """Retrieve a building at a specific position.
 
@@ -180,6 +193,8 @@ class Map:
                 return building
         return None
 
+    # === ROAD NETWORK ===
+    
     def add_road_intersection(self, intersection: Position) -> None:
         """Add an intersection to the road network."""
         if not isinstance(intersection, Position):
@@ -203,10 +218,3 @@ class Map:
             raise TypeError(
                 "Expected a list of intersections or a RoadNetwork instance."
             )
-
-    def add_obstacle(self, position: Position) -> None:
-        """Add an obstacle to the map."""
-        if not isinstance(position, Position):
-            raise TypeError("Expected a Position instance.")
-        if position not in self.obstacles:
-            self.obstacles.append(position)

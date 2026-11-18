@@ -1,4 +1,7 @@
 from dcs_world.geometry import Position
+from dcs_world.system.model.civilian_model import CivilianModel
+from dcs_world.system.model.obstacle_model import ObstacleModel
+from dcs_world.system.model.poi_model import POIModel
 from dcs_world.world import Map
 from dcs_world.system.model.robot_model import RobotModel
 
@@ -10,9 +13,12 @@ class MissionControl:
         """Initialize the MissionControl system with empty dictionaries for drones and ground robots, and a map instance."""
         self.drones: dict[str, RobotModel] = {}
         self.ground_robots: dict[str, RobotModel] = {}
-        self.map = Map()
-        self.observations: list[dict] = []
-        self.pois: list[Position] = []
+        self.map = Map() # Functions as a map model of the mission control
+        
+        # Observations
+        self.civilians: list[CivilianModel] = []
+        self.obstacles: list[ObstacleModel] = []
+        self.pois: list[POIModel] = []
 
     # * === MISSION CONTROL ===
 
@@ -71,6 +77,7 @@ class MissionControl:
             raise ValueError("Invalid robot type. Must be 'Drone' or 'GroundRobot'.")
 
     # * === MAP ===
+    
     def generate_map(
             self,
             seed: int,
@@ -105,3 +112,13 @@ class MissionControl:
 
         if building not in self.pois:
             self.pois.append(building)
+            
+    def add_obstacle(self, position: Position) -> None:
+        """Add an obstacle to the mission control system."""
+        if not isinstance(position, Position):
+            raise TypeError("Expected a Position instance.")
+
+        if position not in self.obstacles:
+            self.obstacles.append(position)
+            
+        

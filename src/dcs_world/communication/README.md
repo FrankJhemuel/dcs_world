@@ -48,7 +48,7 @@ The `Publisher` and `Subscriber` classes provide a simplified interface for exch
 
 Each communication endpoint is associated with a topic. The topic identifies the scene property used for message exchange.
 
-The `.signal.` prefix is automatically added to the provided topic name. Therefore, publisher and subscriber instances must use the same topic.
+The `signal.` prefix is automatically added to the provided topic name. Therefore, publisher and subscriber instances must use the same topic.
 
 ### Publisher
 

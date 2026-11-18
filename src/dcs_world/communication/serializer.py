@@ -1,6 +1,6 @@
 import json
 
-from dataclasses import asdict, fields, is_dataclass
+from dataclasses import fields, is_dataclass
 from enum import Enum
 from typing import get_type_hints
 
