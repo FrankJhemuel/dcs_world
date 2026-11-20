@@ -1,4 +1,3 @@
-import json
 import time
 
 from dcs_world.system import MissionControl

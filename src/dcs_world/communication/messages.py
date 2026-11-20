@@ -44,6 +44,7 @@ class CivilianMessage:
     """Represent the observations collected by a civilian."""
     
     timestamp: float
+    robot_id: str
     building_position: Position
     n_civilians: int
     
@@ -52,6 +53,7 @@ class ObstacleMessage:
     """Represent the observations collected by a robot regarding obstacles."""
     
     timestamp: float
+    robot_id: str
     position: Position
     
 @dataclass
@@ -59,4 +61,5 @@ class POIMessage:
     """Represent the observations collected by a drone."""
     
     timestamp: float
+    robot_id: str
     building_position: Position
