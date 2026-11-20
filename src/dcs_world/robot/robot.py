@@ -155,26 +155,6 @@ class Robot():
             raise TypeError("velocity must be a Twist object.")
 
         self._velocity = value.copy()
-
-    def to_robot_status_message(self) -> RobotStatusMessage:
-        """Convert the robot's state into a RobotStatusMessage.
-
-        Returns:
-            RobotStatusMessage: A message containing the robot's current state.
-
-        Notes:
-            This method is useful for communication with other systems
-            that require the robot's status in a standardized message format.
-        """
-        return RobotStatusMessage(
-            timestamp = None,
-            id=self.id,
-            robot_type=self.ROBOT_TYPE,
-            pose=self.pose,
-            velocity=self.velocity,
-            soc=self.soc,
-            status=self.status
-        )
         
     @property
     def use_rate(self) -> float:
@@ -191,25 +171,9 @@ class Robot():
         return self.config.charge_use_rate_per_meter
 
     def move(self, cmd_vel: Twist, dt: float) -> None:
-        """Update the robot's pose according to a velocity command.
+        """Update robot pose using body-frame velocity commands."""
 
-        Args:
-            cmd_vel (Twist): A Twist object containing the velocity components.
-            dt (float): Time step in seconds over which the velocity
-                command is applied.
-
-        Raises:
-            TypeError: If cmd_vel is not a Twist object.
-            TypeError: If dt is not a numeric value.
-            ValueError: If dt is not finite or is non-positive.
-
-        Notes:
-            This method provides a default implementation that updates the
-            robot's pose by integrating the commanded velocities over dt.
-            Subclasses may override this method to implement robot-specific
-            motion models.
-        """
-        # Validate cmd_vel and dt
+        # Validate inputs
         if not isinstance(cmd_vel, Twist):
             raise TypeError("cmd_vel must be a Twist object.")
 
@@ -219,28 +183,45 @@ class Robot():
         if not np.isfinite(dt) or dt <= 0:
             raise ValueError("dt must be finite and positive.")
 
-        # Update the robot's pose based on the commanded velocity and time step
-        # Convert Twist to numpy array
-        cmd_vel_array = np.array([
-            cmd_vel.linear.x,
-            cmd_vel.linear.y,
-            cmd_vel.angular.z
+        # Current orientation (yaw)
+        yaw = self._pose.orientation.z
+
+        # Extract body-frame velocities
+        vx_body = cmd_vel.linear.x
+        vy_body = cmd_vel.linear.y
+        vz_body = cmd_vel.linear.z
+
+        wz = cmd_vel.angular.z
+
+        # Transform body-frame linear velocity into world frame
+        rotation_matrix = np.array([
+            [np.cos(yaw), -np.sin(yaw)],
+            [np.sin(yaw),  np.cos(yaw)]
         ])
 
-        # Calculate displacement
-        delta_pose_array = cmd_vel_array * dt
-
-        # Convert current pose to numpy array
-        current_pose_array = np.array([
-            self._pose.position.x,
-            self._pose.position.y,
-            self._pose.orientation.z
+        velocity_body = np.array([
+            vx_body,
+            vy_body
         ])
 
-        # Update pose
-        new_pose_array = current_pose_array + delta_pose_array
+        velocity_world = rotation_matrix @ velocity_body
 
-        # Update Pose
-        self._pose.position.x = new_pose_array[0]
-        self._pose.position.y = new_pose_array[1]
-        self._pose.orientation.z = new_pose_array[2]
+        # Integrate position in world frame
+        self._pose.position.x += velocity_world[0] * dt
+        self._pose.position.y += velocity_world[1] * dt
+        self._pose.position.z += vz_body * dt
+
+        # Integrate orientation
+        self._pose.orientation.z += wz * dt
+
+        # Keep yaw within [-pi, pi]
+        self._pose.orientation.z = np.arctan2(
+            np.sin(self._pose.orientation.z),
+            np.cos(self._pose.orientation.z)
+        )
+
+        # Store commanded velocity
+        self._velocity = cmd_vel.copy()  
+            
+            
+            

@@ -1,75 +1,93 @@
 from dcs_world.robot.drone import Drone
+from dcs_world.communication import Subscriber, Publisher
 from dcs_world.geometry import Twist, Pose
-from dcs_world.communication import Publisher, Subscriber
+from dcs_world.communication.messages import RobotStatusMessage
 from dcs_world.coppelia.utils import get_next_drone_id
 
-# Velocita' di prova in m/s
-TEST_VEL_X = 0.1
-TEST_VEL_Y = 0.0
+import time
 
-#* ====================================
-#* UTILITY FUNCTIONS
-#* ====================================
+COMMAND_TIMEOUT = 0.5
 
-def set_target_pose(pose: Pose, target_handle):
-    sim.setObjectPosition(target_handle, -1, [pose.x, pose.y, pose.z])
-    sim.setObjectOrientation(target_handle, -1, [0.0, 0.0, pose.yaw])
-    
+def set_target_pose(pose, target_handle):
+    sim.setObjectPosition(
+        target_handle, -1, [pose.x, pose.y, pose.z]
+    )
+    sim.setObjectOrientation(
+        target_handle, -1, [0.0, 0.0, pose.yaw]
+    )
 
-#* ====================================
-#* COPPELIA SIMULATION CALLBACKS
-#* ====================================
+
+def on_cmd_vel(message):
+    self.cmd_vel = message
+    self.last_cmd_time = time.monotonic()
+
 
 def sysCall_init():
     sim = require('sim')
-    
+
     self.drone_handle = sim.getObject('/Quadcopter')
     self.target_handle = sim.getObject('/target')
-    
+
     robot_id = get_next_drone_id(sim)
-    
-    # Initialize the drone model with its initial pose and state of charge
+
+    position = sim.getObjectPosition(self.drone_handle, -1)
+    orientation = sim.getObjectOrientation(self.drone_handle, -1)
+
     init_pose = Pose.from_coordinates(
-        x=sim.getObjectPosition(self.drone_handle, -1)[0],
-        y=sim.getObjectPosition(self.drone_handle, -1)[1],
-        z=sim.getObjectPosition(self.drone_handle, -1)[2],
-        yaw=sim.getObjectOrientation(self.drone_handle, -1)[2]
+        x=position[0],
+        y=position[1],
+        z=position[2],
+        yaw=orientation[2]
     )
-    
+
     self.drone = Drone(
         id=str(robot_id),
         init_pose=init_pose,
-        init_soc = 100.0,
-        config = Drone.DEFAULT_CONFIG
+        init_soc=100.0,
+        config=Drone.DEFAULT_CONFIG
     )
-    
-    # Publishers and subscribers
-    self.status_pub = Publisher(
-        sim=sim,
-        topic=f"{robot_id}.status",
-    )
-    
-    drone_status_msg = self.drone.to_robot_status_message()
-    
-    self.status_pub.publish(drone_status_msg)
 
     self.dt = sim.getSimulationTimeStep()
 
-
-def sysCall_actuation():
-    # Per ora generiamo noi i comandi
-    cmd_vel_x = TEST_VEL_X
-    cmd_vel_y = TEST_VEL_Y
-
-    cmd_vel_twist = Twist(
-        linear=[cmd_vel_x, cmd_vel_y, 0.0],
+    # Initial command: zero velocity
+    self.cmd_vel = Twist(
+        linear=[0.0, 0.0, 0.0],
         angular=[0.0, 0.0, 0.0]
     )
-    
-    self.drone.move(cmd_vel_twist, self.dt)
-    
+
+    self.last_cmd_time = time.monotonic()
+
+    # Subscribe to velocity commands
+    self.cmd_vel_sub = Subscriber(
+        topic=f"{self.drone.id}.cmd_vel",
+        message_type=Twist,
+        callback=on_cmd_vel
+    )
+
+    # Status publisher
+    self.status_pub = Publisher(
+        topic=f"{self.drone.id}.status"
+    )
+
+
+def sysCall_actuation():
+    # Receive pending commands
+    self.cmd_vel_sub.receive()
+
+    # Stop if no command has arrived recently
+    if time.monotonic() - self.last_cmd_time > COMMAND_TIMEOUT:
+        self.cmd_vel = Twist(
+            linear=[0.0, 0.0, 0.0],
+            angular=[0.0, 0.0, 0.0]
+        )
+
+    self.drone.move(self.cmd_vel, self.dt)
+
     set_target_pose(self.drone.pose, self.target_handle)
-    self.status_pub.publish(self.drone.to_robot_status_message())
+
+    self.status_pub.publish(
+        RobotStatusMessage.from_robot(self.drone)
+    )
 
 
 def sysCall_sensing():
@@ -77,4 +95,5 @@ def sysCall_sensing():
 
 
 def sysCall_cleanup():
-    pass
+    self.cmd_vel_sub.close()
+    self.status_pub.close()

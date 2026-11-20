@@ -3,7 +3,6 @@ from typing import Literal
 
 from zmq import Enum
 
-from dcs_world.communication.messages import RobotStatusMessage
 from dcs_world.geometry.pose import Pose
 from dcs_world.geometry.twist import Twist
 from dcs_world.robot.utils.robot_status import RobotStatus
@@ -35,6 +34,7 @@ def _to_dict(value):
 class RobotModel:
     """Robot model representing the state of a robot."""
     
+    timestamp: float
     id: str
     robot_type: Literal["Drone", "GroundRobot"]
     pose: Pose
@@ -43,7 +43,7 @@ class RobotModel:
     status: RobotStatus
     
     @classmethod
-    def from_status_message(cls, message: RobotStatusMessage):
+    def from_status_message(cls, message: 'RobotStatusMessage') -> 'RobotModel': #type: ignore
         """Create a RobotModel from a RobotStatusMessage."""
         if message is None:
             raise ValueError("message cannot be None.")

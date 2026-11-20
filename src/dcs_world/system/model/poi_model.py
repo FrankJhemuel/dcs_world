@@ -1,6 +1,5 @@
 from dataclasses import dataclass, fields
 
-from dcs_world.communication.messages import POIMessage
 from dcs_world.geometry.position import Position
 
 
@@ -8,12 +7,13 @@ from dcs_world.geometry.position import Position
 class POIModel:
     """Represent the observations collected by a robot regarding points of interest."""
 
+    timestamp: float
     building_position: Position
     
     
     @classmethod
-    def from_status_message(cls, message: POIMessage):
-        """Create a RobotModel from a RobotStatusMessage."""
+    def from_status_message(cls, message: 'POIMessage') -> 'POIModel': #type: ignore
+        """Create a POIModel from a POIMessage."""
         if message is None:
             raise ValueError("message cannot be None.")
         

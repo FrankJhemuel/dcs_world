@@ -1,8 +1,8 @@
 # Communication
 
-The `communication` package provides a lightweight message exchange interface for communication between Python simulation scripts in CoppeliaSim.
+The `communication` package provides a lightweight message exchange interface for communication between Python simulation scripts in CoppeliaSim and external Python applications.
 
-Messages are represented using Python dataclasses and serialized into JSON strings. CoppeliaSim scene properties are used to exchange these strings between scripts.
+Messages are represented using Python dataclasses and serialized into JSON strings. ZeroMQ (ØMQ) is used as the underlying transport layer, implementing a brokerless Publish-Subscribe (PUB/SUB) messaging pattern.
 
 ## Package Structure
 
@@ -11,14 +11,17 @@ communication/
 ├── __init__.py
 ├── messages.py
 ├── serializer.py
+├── endpoint.py
 ├── publisher.py
 └── subscriber.py
 ```
 
 ## Requirements
 
-- CoppeliaSim with Python simulation script support.
-- The `dcs_world` package must be accessible to the Python interpreter used by CoppeliaSim.
+- Python 3.12 or later.
+- CoppeliaSim with Python simulation script support (when communicating from simulation scripts).
+- The `dcs_world` package must be accessible to the Python interpreters running the publishers and subscribers.
+- `pyzmq` for ZeroMQ communication.
 
 ## Message Definition
 
@@ -44,15 +47,17 @@ cmd = TwistStamped(
 
 ## Communication
 
-The `Publisher` and `Subscriber` classes provide a simplified interface for exchanging messages through CoppeliaSim scene properties.
+The `Publisher` and `Subscriber` classes provide a simplified interface for exchanging messages through ZeroMQ sockets.
 
-Each communication endpoint is associated with a topic. The topic identifies the scene property used for message exchange.
+Communication is organized around topics. Each message is associated with a topic that identifies the type or destination of the information being exchanged.
 
-The `signal.` prefix is automatically added to the provided topic name. Therefore, publisher and subscriber instances must use the same topic.
+Publishers send messages through PUB sockets, while subscribers receive messages through SUB sockets.
+
+The communication layer automatically determines the TCP endpoint associated with a topic. Port configuration is handled internally and does not need to be specified when creating publishers or subscribers.
 
 ### Publisher
 
-The `Publisher` class handles message serialization and writes the resulting JSON string to a CoppeliaSim scene property.
+The `Publisher` class handles message serialization and transmits the resulting payload through a ZeroMQ PUB socket.
 
 ```python
 from dcs_world.communication.publisher import Publisher
@@ -64,12 +69,7 @@ from dcs_world.communication.messages import (
 
 
 def sysCall_init():
-    global sim, publisher
-
-    sim = require("sim")
-
-    publisher = Publisher(
-        sim=sim,
+    self.publisher = Publisher(
         topic="dcs_world.drone_1.cmd_vel"
     )
 
@@ -84,19 +84,20 @@ def sysCall_actuation():
         )
     )
 
-    publisher.publish(msg)
+    self.publisher.publish(msg)
 ```
 
 The publisher requires:
 
-- `sim`: The CoppeliaSim simulation API.
-- `topic`: The topic name used to identify the scene property.
+- `topic`: The topic associated with the published messages.
 
-The `publish()` method accepts a Python message object and automatically serializes it before writing it to the scene property.
+The `publish()` method accepts a Python message object, automatically serializes it, and transmits it through the associated ZeroMQ socket.
+
+Each publisher independently binds to the endpoint associated with its topic.
 
 ### Subscriber
 
-The `Subscriber` class reads messages from a CoppeliaSim scene property, deserializes them into their corresponding Python dataclass, and invokes a callback when a new message is received.
+The `Subscriber` class receives messages through a ZeroMQ SUB socket, deserializes them into their corresponding Python dataclass, and invokes a callback when a message is received.
 
 ```python
 from dcs_world.communication.subscriber import Subscriber
@@ -109,29 +110,18 @@ def on_cmd_vel(message):
     print(f"Angular velocity: {message.twist.angular}")
 
 
-def sysCall_init():
-    global sim, subscriber
-
-    sim = require("sim")
-
-    subscriber = Subscriber(
-        sim=sim,
-        topic="dcs_world.drone_1.cmd_vel",
-        message_type=TwistStamped,
-        callback=on_cmd_vel
-    )
-
-
-def sysCall_sensing():
-    subscriber.receive()
+subscriber = Subscriber(
+    topic="dcs_world.drone_1.cmd_vel",
+    message_type=TwistStamped,
+    callback=on_cmd_vel
+)
 ```
 
 The subscriber requires:
 
-- `sim`: The CoppeliaSim simulation API.
-- `topic`: The topic name used to identify the scene property.
+- `topic`: The topic associated with the messages to receive.
 - `message_type`: The dataclass used to reconstruct incoming messages.
-- `callback`: An optional function executed when a new message is received.
+- `callback`: An optional function executed when a message is received.
 
 The callback receives the deserialized message as its argument.
 
@@ -141,7 +131,15 @@ A callback can also be registered or replaced after initialization using `subscr
 subscriber.subscribe(on_cmd_vel)
 ```
 
-The `receive()` method must be called periodically, typically from a CoppeliaSim simulation callback such as `sysCall_sensing()`.
+The `receive()` method checks for incoming messages without blocking execution:
+
+```python
+subscriber.receive()
+```
+
+If a message is available, it is processed and passed to the registered callback. Otherwise, the method immediately returns.
+
+The method can be called periodically from a simulation callback or an external application's execution loop.
 
 ## Communication Workflow
 
@@ -149,19 +147,24 @@ The message exchange follows this sequence:
 
 1. The publisher receives a Python message object.
 2. The publisher serializes the message into a JSON string.
-3. The publisher writes the JSON string to the corresponding scene property.
-4. The subscriber periodically checks the scene property for new data.
-5. The subscriber deserializes the JSON string into the specified message dataclass.
-6. The subscriber invokes its registered callback with the reconstructed message.
+3. The serialized payload is encoded into bytes.
+4. The publisher transmits the payload through its ZeroMQ PUB socket, associated with the specified topic.
+5. The subscriber receives the message through its ZeroMQ SUB socket.
+6. The subscriber decodes and deserializes the payload into the specified message dataclass.
+7. The subscriber invokes its registered callback with the reconstructed message.
 
 ## Important Notes
 
-- The publisher and subscriber must use identical topic names.
-- The `.signal.` prefix is automatically added to topic names.
-- The `sim` API is injected into the publisher and subscriber during initialization.
-- Scene properties retain their latest assigned value. Reading a property does not consume or remove it.
-- The implementation provides latest-value communication, not a message queue. If a publisher writes multiple messages before a subscriber reads them, only the latest value is available.
-- The subscriber detects new messages by comparing the received serialized data with the previously received data. Consequently, identical consecutive messages are not processed twice.
-- The timestamp uses CoppeliaSim simulation time.
+- Publishers and subscribers must use identical topic names to communicate.
+- TCP endpoints and ports are determined internally based on the topic name.
+- Each publisher binds to its own endpoint. Multiple publishers must use different topics to avoid endpoint conflicts.
+- Multiple subscribers can connect to the same publisher endpoint.
+- The implementation is brokerless. Publishers and subscribers communicate directly without requiring an intermediate message broker.
+- The implementation uses TCP over localhost by default.
+- ZeroMQ PUB/SUB provides asynchronous communication but does not guarantee message delivery. Messages may be lost if subscribers are not connected or ready when messages are published.
+- The PUB/SUB pattern does not provide persistent message storage or message replay.
+- The subscriber's `receive()` method is non-blocking and processes at most one message per call.
+- ZeroMQ topic subscriptions use prefix matching. The subscriber additionally checks the received topic for an exact match.
+- Publishers and subscribers manage their socket resources internally.
 - Serialization and communication are separate responsibilities. The serializer does not depend on CoppeliaSim.
-- Subscribers must be polled periodically for callbacks to be executed.
+- Message timestamps are part of the message definition. Their reference depends on how the timestamp is generated by the message producer.

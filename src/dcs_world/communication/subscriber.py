@@ -1,30 +1,45 @@
+import zmq
+
 from .serializer import deserialize
+from .endpoint import endpoint_for_topic
 
 
 class Subscriber:
-    def __init__(self, sim, topic: str, message_type, callback=None):
-        self.sim = sim
-        self.topic = "signal." + topic
+
+    def __init__(self, topic: str, message_type, callback=None):
+
+        self.topic = topic.encode("utf-8")
         self.message_type = message_type
         self.callback = callback
-        self.last_message = None
 
-    def subscribe(self, callback):
-        self.callback = callback
+        self.endpoint = endpoint_for_topic(topic)
+
+        self.context = zmq.Context.instance()
+        self.socket = self.context.socket(zmq.SUB)
+
+        self.socket.setsockopt(zmq.LINGER, 0)
+        self.socket.setsockopt(zmq.SUBSCRIBE, self.topic)
+
+        self.socket.connect(self.endpoint)
 
     def receive(self):
-        data = self.sim.getStringProperty(
-            self.sim.handle_scene,
-            self.topic,
-            {"noError": True}
-        )
 
-        if data is None or data == self.last_message:
+        try:
+            topic, payload = self.socket.recv_multipart(flags=zmq.NOBLOCK)
+
+        except zmq.Again:
+            return  
+
+        if topic != self.topic:
             return
 
-        self.last_message = data
-
-        message = deserialize(data, self.message_type)
+        message = deserialize(
+            payload.decode("utf-8"),
+            self.message_type
+        )
 
         if self.callback is not None:
             self.callback(message)
+
+    def close(self):
+        self.socket.close()

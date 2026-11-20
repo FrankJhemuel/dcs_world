@@ -1,17 +1,17 @@
 from dataclasses import dataclass, fields
 
-from dcs_world.communication.messages import ObstacleMessage
 from dcs_world.geometry.position import Position
 
 @dataclass
 class ObstacleModel:
     """Represent the observations collected by a robot regarding obstacles."""
 
+    timestamp: float
     position: Position
     
     @classmethod
-    def from_status_message(cls, message: ObstacleMessage):
-        """Create a RobotModel from a RobotStatusMessage."""
+    def from_status_message(cls, message: 'ObstacleMessage') -> 'ObstacleModel': #type: ignore
+        """Create a ObstacleModel from a ObstacleMessage."""
         if message is None:
             raise ValueError("message cannot be None.")
         
