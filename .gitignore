@@ -13,5 +13,4 @@ wheels/
 .vscode/
 .env
 .coverage
-*.ttt
 \*_*
