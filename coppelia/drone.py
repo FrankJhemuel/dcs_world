@@ -29,6 +29,8 @@ def sysCall_init():
     self.target_handle = sim.getObject('/target')
 
     robot_id = get_next_drone_id(sim)
+    
+    print(f"[Drone ID] Generated: {robot_id}")
 
     position = sim.getObjectPosition(self.drone_handle, -1)
     orientation = sim.getObjectOrientation(self.drone_handle, -1)

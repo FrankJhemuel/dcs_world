@@ -35,7 +35,7 @@ def on_drone_status(msg: RobotStatusMessage):
 def initialize_subscribers() -> list[Subscriber]:
 
     drone_subscriber = Subscriber(
-        topic="drone_1.status",
+        topic="drone_*.status",
         message_type=RobotStatusMessage,
         callback=on_drone_status
     )

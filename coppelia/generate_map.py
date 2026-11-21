@@ -280,16 +280,7 @@ def sysCall_init():
 
     world_map = Map()
 
-    world_map.generate_map(
-        seed=SEED,
-        rows=ROWS,
-        cols=COLS,
-        spacing=SPACING,
-        building_probability=BUILDING_PROBABILITY,
-        obstacle_probability=OBSTACLE_PROBABILITY,
-        min_building_size=BUILDING_MIN_SIZE,
-        max_building_size=BUILDING_MAX_SIZE
-    )
+    world_map.generate_map()
 
     visualize_map(world_map)
 

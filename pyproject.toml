@@ -31,3 +31,4 @@ addopts = ["-p", "pytest_cov"]
 
 [project.scripts]
 mission_control = "dcs_world.mission_control:main"
+broker = "dcs_world.communication.broker:main"

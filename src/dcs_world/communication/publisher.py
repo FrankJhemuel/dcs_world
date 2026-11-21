@@ -1,21 +1,21 @@
 import zmq
 
 from .serializer import serialize
-from .endpoint import endpoint_for_topic
+
+
+PUBLISHER_ENDPOINT = "tcp://127.0.0.1:5555"
 
 
 class Publisher:
 
     def __init__(self, topic: str):
-
         self.topic = topic.encode("utf-8")
-        self.endpoint = endpoint_for_topic(topic)
 
         self.context = zmq.Context.instance()
         self.socket = self.context.socket(zmq.PUB)
 
         self.socket.setsockopt(zmq.LINGER, 0)
-        self.socket.bind(self.endpoint)
+        self.socket.connect(PUBLISHER_ENDPOINT)
 
     def publish(self, message):
 

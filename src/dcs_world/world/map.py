@@ -1,42 +1,47 @@
+from dataclasses import dataclass
 import random
 
 from dcs_world.infrastructure import Building, RoadNetwork
 from dcs_world.geometry.position import Position
 
 
+@dataclass
+class MapConfig:
+    """Configuration parameters for procedural map generation."""
+
+    seed: int = 42
+
+    rows: int = 5
+    cols: int = 5
+    spacing: float = 1.0
+
+    building_probability: float = 0.6
+    obstacle_probability: float = 0.2
+
+    min_building_size: float = 0.5
+    max_building_size: float = 0.5
+
+
 class Map:
     """Map representation for a DCS World scenario."""
 
-    def __init__(self):
+    def __init__(self, config: MapConfig = MapConfig()):
+        self.config = config
+
         self.buildings: list[Building] = []
         self.road_network: RoadNetwork = RoadNetwork()
         self.obstacles: list[Position] = []
 
     def generate_map(
         self,
-        seed: int,
-        rows: int = 5,
-        cols: int = 5,
-        spacing: float = 100.0,
-        building_probability: float = 0.8,
-        obstacle_probability: float = 0.2,
-        min_building_size: float = 10.0,
-        max_building_size: float = 30.0,
+        config: MapConfig | None = None,
+        seed: int | None = None,
     ) -> None:
         """
         Generate a stochastic, reproducible grid map.
 
         Args:
-            seed: Random seed for reproducible generation.
-            rows: Number of blocks along the y-axis.
-            cols: Number of blocks along the x-axis.
-            spacing: Distance between adjacent intersections.
-            building_probability: Probability of placing a building
-                in each block.
-            obstacle_probability: Probability of placing an obstacle
-                on each road segment.
-            min_building_size: Minimum building dimension.
-            max_building_size: Maximum building dimension.
+            config: Optional configuration parameters for map generation.
 
         Notes:
             - The road network contains grid intersections and connections.
@@ -44,6 +49,22 @@ class Map:
             - Obstacles are placed along connections between intersections.
             - Existing map contents are replaced.
         """
+        if config is not None:
+            self.config = config
+        if seed is not None:
+            self.config.seed = seed
+
+        config = self.config
+
+        seed_ = config.seed
+        rows = config.rows
+        cols = config.cols
+        spacing = config.spacing
+        building_probability = config.building_probability
+        obstacle_probability = config.obstacle_probability
+        min_building_size = config.min_building_size
+        max_building_size = config.max_building_size
+
         if rows < 1 or cols < 1:
             raise ValueError("rows and cols must be positive.")
 
@@ -68,7 +89,7 @@ class Map:
                 "and smaller than the road spacing."
             )
 
-        rng = random.Random(seed)
+        rng = random.Random(seed_)
 
         # Reset the map.
         self.buildings.clear()
@@ -159,25 +180,25 @@ class Map:
                 self.add_obstacle(position)
 
     # * === CRUD ===
-    
+
     # === OBSTACLES ===
-    
+
     def add_obstacle(self, position: Position) -> None:
         """Add an obstacle to the map."""
         if not isinstance(position, Position):
             raise TypeError("Expected a Position instance.")
         if position not in self.obstacles:
             self.obstacles.append(position)
-            
+
     # === BUILDINGS ===
-    
+
     def add_building(self, building: Building) -> None:
         """Add a building to the map."""
         if not isinstance(building, Building):
             raise TypeError("Expected a Building instance.")
 
         self.buildings.append(building)
-        
+
     def get_building(self, position: Position) -> Building | None:
         """Retrieve a building at a specific position.
 
@@ -194,7 +215,7 @@ class Map:
         return None
 
     # === ROAD NETWORK ===
-    
+
     def add_road_intersection(self, intersection: Position) -> None:
         """Add an intersection to the road network."""
         if not isinstance(intersection, Position):
