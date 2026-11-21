@@ -1,9 +1,8 @@
 import numpy as np
 import uuid
 
-from dcs_world.communication.messages import RobotStatusMessage
 from dcs_world.geometry import Pose, Twist, Vector3
-from .utils import RobotStatus, RobotConfig
+from .utils import RobotStatus, RobotConfig, DeploymentState
 
 
 class Robot():
@@ -20,9 +19,9 @@ class Robot():
         max_accel=0.5,
         charge_use_rate_per_meter=0.1,
     )
-    
+
     ROBOT_TYPE = "Robot"  # Default robot type; subclasses should override this
-    
+
     def __init__(
         self,
         id: str | None = None,
@@ -62,14 +61,15 @@ class Robot():
         for name, value in numeric_params.items():
             if isinstance(value, bool) or not isinstance(value, (int, float)):
                 raise TypeError(f"{name} must be a numeric value.")
-        
+
         # Validate finite numeric inputs
         if not all(np.isfinite(value) for value in numeric_params.values()):
             raise ValueError("Numeric parameters must be finite.")
 
         # Validate ranges
         if not 0.0 <= init_soc <= 100.0:
-            raise ValueError("Initial state of charge must be between 0 and 100.")
+            raise ValueError(
+                "Initial state of charge must be between 0 and 100.")
 
         # Validate configuration
         if config is None:
@@ -77,9 +77,10 @@ class Robot():
 
         if not isinstance(config, RobotConfig):
             raise TypeError("config must be an instance of RobotConfig.")
-        
-        self.id = str(uuid.uuid4()) if id is None else id  # Unique identifier for the robot
-        
+
+        # Unique identifier for the robot
+        self.id = str(uuid.uuid4()) if id is None else id
+
         # Initialize state
         if init_pose is None:
             self._pose = Pose(
@@ -89,21 +90,21 @@ class Robot():
             )
         else:
             self._pose = init_pose
-            
+
         self.soc = float(init_soc)
         self.status = RobotStatus.IDLE
+        self.deployment_state = DeploymentState.STORED
 
         self._velocity = Twist(
             linear=Vector3(),
             angular=Vector3()
         )  # [vx, vy, omega] in m/s and rad/s
-        
+
         # Store configuration
         self.config = config
-        
-        
+
         self.observations: list[dict] = []
-        
+
     def add_observation(self, observation: dict) -> None:
         """Add an observation to the robot's observations list."""
         self.observations.append(observation)
@@ -111,7 +112,9 @@ class Robot():
     def clear_observations(self) -> None:
         """Clear the robot's observations list."""
         self.observations.clear()
-        
+
+    # * ============= PROPERTIES =============
+
     @property
     def pose(self) -> Pose:
         """Return a copy of the robot's current pose.
@@ -124,6 +127,23 @@ class Robot():
             changing the robot's internal pose.
         """
         return self._pose.copy()
+
+    def reset_pose(self, new_pose: Pose) -> None:
+        """Reset the robot's pose to a new value.
+
+        Args:
+            new_pose (Pose): A Pose object containing the new position and orientation.
+
+        Raises:
+            TypeError: If new_pose is not a Pose object.
+
+        Notes:
+            This method updates the robot's internal pose.
+        """
+        if not isinstance(new_pose, Pose):
+            raise TypeError("new_pose must be a Pose object.")
+
+        self._pose = new_pose.copy()
 
     @property
     def velocity(self) -> Twist:
@@ -155,7 +175,7 @@ class Robot():
             raise TypeError("velocity must be a Twist object.")
 
         self._velocity = value.copy()
-        
+
     @property
     def use_rate(self) -> float:
         """Return the robot's charge use rate per meter traveled.
@@ -169,6 +189,12 @@ class Robot():
             meter the robot travels.
         """
         return self.config.charge_use_rate_per_meter
+
+    # * ===============
+    # * === METHODS ===
+    # * ===============
+
+    # * ============= PHYSICS =============
 
     def move(self, cmd_vel: Twist, dt: float) -> None:
         """Update robot pose using body-frame velocity commands."""
@@ -221,7 +247,31 @@ class Robot():
         )
 
         # Store commanded velocity
-        self._velocity = cmd_vel.copy()  
-            
-            
-            
+        self._velocity = cmd_vel.copy()
+
+    # * ============= LIFECYCLE =============
+
+    def deploy(self):
+        if self.deployment_state != DeploymentState.STORED:
+            return False
+
+        self.deployment_state = DeploymentState.DEPLOYED
+        return True
+
+    def begin_return(self):
+        if self.deployment_state != DeploymentState.DEPLOYED:
+            return False
+
+        self.deployment_state = DeploymentState.RETURNING
+        return True
+
+    def store(self):
+        if self.deployment_state not in (
+            DeploymentState.DEPLOYED,
+            DeploymentState.RETURNING
+        ):
+            return False
+
+        self.deployment_state = DeploymentState.STORED
+        self.status = RobotStatus.IDLE
+        return True

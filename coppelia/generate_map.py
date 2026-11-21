@@ -32,8 +32,15 @@ ROAD_CLEARANCE = 0.001
 BUILDING_OPACITY = 0.5
 
 
+# * ============================================================
+# * GLOBAL VARIABLES
+# * ============================================================
+
 # Keep track of objects created by this script.
 generated_objects = []
+
+# Parent object for the generated map hierarchy.
+map_handle = None
 
 # CoppeliaSim API module.
 sim = None
@@ -42,9 +49,22 @@ sim = None
 visual_rng = random.Random(SEED)
 
 
-#* ============================================================
-#* COPPELIASIM OBJECT CREATION
-#* ============================================================
+# * ============================================================
+# * COPPELIASIM OBJECT CREATION
+# * ============================================================
+
+
+def create_map_parent():
+    """Create the root object for the generated map hierarchy."""
+
+    global map_handle
+
+    map_handle = sim.createDummy(0.01)
+    sim.setObjectAlias(map_handle, "GeneratedMap")
+    sim.setObjectPosition(map_handle, -1, [0, 0, 0])
+
+    return map_handle
+
 
 def create_box(name, position, size, color):
     """Create a cuboid in the CoppeliaSim scene."""
@@ -65,29 +85,34 @@ def create_box(name, position, size, color):
         color
     )
 
+    # Add object to the map hierarchy.
+    # Keep the original world position.
+    sim.setObjectParent(handle, map_handle, True)
+
     generated_objects.append(handle)
 
     return handle
 
 
 def clear_generated_objects():
-    """Remove objects created by the previous generation."""
+    """Remove the previously generated map hierarchy."""
 
-    global generated_objects
+    global generated_objects, map_handle
 
-    for handle in reversed(generated_objects):
+    if map_handle is not None:
         try:
-            sim.removeObject(handle)
+            # Removing the parent also removes its children.
+            sim.removeObject(map_handle)
         except Exception:
             pass
 
     generated_objects = []
+    map_handle = None
 
 
-
-#* ============================================================
-#* ROAD VISUALIZATION
-#* ============================================================
+# * ============================================================
+# * ROAD VISUALIZATION
+# * ============================================================
 
 def create_road(start, end):
     """Create a rectangular road segment between two intersections."""
@@ -160,9 +185,10 @@ def visualize_roads(world_map):
                 grid[row + 1][col]
             )
 
-#* ============================================================
-#* BUILDING VISUALIZATION
-#* ============================================================
+
+# * ============================================================
+# * BUILDING VISUALIZATION
+# * ============================================================
 
 def visualize_buildings(world_map):
     """Visualize buildings using their generated center positions."""
@@ -194,7 +220,7 @@ def visualize_buildings(world_map):
             ],
             [0.65, 0.65, 0.70]
         )
-        
+
         sim.setShapeColor(
             handle,
             "",
@@ -202,9 +228,10 @@ def visualize_buildings(world_map):
             [BUILDING_OPACITY]
         )
 
-#* ============================================================
-#* OBSTACLE VISUALIZATION
-#* ============================================================
+# * ============================================================
+# * OBSTACLE VISUALIZATION
+# * ============================================================
+
 
 def visualize_obstacles(world_map):
     """Visualize obstacles standing above the road surface."""
@@ -228,20 +255,23 @@ def visualize_obstacles(world_map):
             [0.9, 0.15, 0.1]
         )
 
-#* ============================================================
-#* MAP VISUALIZATION
-#* ============================================================
+# * ============================================================
+# * MAP VISUALIZATION
+# * ============================================================
+
 
 def visualize_map(world_map):
     """Create the complete map visualization."""
 
     clear_generated_objects()
 
+    # Create the root of the generated map hierarchy.
+    create_map_parent()
+
     width = COLS * SPACING
     height = ROWS * SPACING
 
     # Ground centered at z = 0.
-    # Its top surface is at z = GROUND_HEIGHT / 2.
     create_box(
         "GeneratedMap_Ground",
         [
@@ -265,10 +295,11 @@ def visualize_map(world_map):
     print(f"Buildings: {len(world_map.buildings)}")
     print(f"Obstacles: {len(world_map.obstacles)}")
     print(f"Scene objects created: {len(generated_objects)}")
+    
+# * ============================================================
+# * COPPELIASIM CALLBACKS
+# * ============================================================
 
-#* ============================================================
-#* COPPELIASIM CALLBACKS
-#* ============================================================
 
 def sysCall_init():
     """Generate and visualize the map when simulation starts."""
