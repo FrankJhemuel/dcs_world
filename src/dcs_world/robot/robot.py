@@ -2,6 +2,7 @@ import numpy as np
 import uuid
 
 from dcs_world.geometry import Pose, Twist, Vector3
+from dcs_world.robot.utils.task_status import TaskStatus
 from .utils import RobotStatus, RobotConfig, DeploymentState
 
 
@@ -15,7 +16,7 @@ class Robot():
     """
 
     DEFAULT_CONFIG = RobotConfig(
-        max_speed=1.0,
+        max_speed=0.1,
         max_accel=0.5,
         charge_use_rate_per_meter=0.1,
     )
@@ -93,6 +94,7 @@ class Robot():
 
         self.soc = float(init_soc)
         self.status = RobotStatus.IDLE
+        self.task_status = TaskStatus.IDLE
         self.deployment_state = DeploymentState.STORED
 
         self._velocity = Twist(

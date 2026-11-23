@@ -5,7 +5,9 @@ from dcs_world.communication.messages import (
     RobotDeploymentMessage,
     RobotStorageMessage,
     RobotActivationMessage,
-    RobotDeactivationMessage
+    RobotDeactivationMessage,
+    RobotManagementStatus,
+    RobotManagementResponseMessage
 )
 from dcs_world.geometry import Pose
 
@@ -23,6 +25,9 @@ DRONE_MODEL_FILENAME = "drone.ttm"
 
 DEPLOY_TOPIC = "base.deploy"
 STORE_TOPIC = "base.store"
+
+DEPLOY_RESPONSE_TOPIC = "base.deploy.response"
+STORE_RESPONSE_TOPIC = "base.store.response"
 
 
 # ============================================================
@@ -72,7 +77,7 @@ def sysCall_init():
     self.deactivation_publishers = {}
 
     # --------------------------------------------------------
-    # COMMUNICATION
+    # COMMUNICATION - BASE
     # --------------------------------------------------------
 
     self.deploy_subscriber = Subscriber(
@@ -85,6 +90,14 @@ def sysCall_init():
         topic=STORE_TOPIC,
         message_type=RobotStorageMessage,
         callback=on_store
+    )
+
+    self.deploy_response_publisher = Publisher(
+        topic=DEPLOY_RESPONSE_TOPIC
+    )
+
+    self.store_response_publisher = Publisher(
+        topic=STORE_RESPONSE_TOPIC
     )
 
     # --------------------------------------------------------
@@ -116,6 +129,13 @@ def sysCall_cleanup():
 
     self.deploy_subscriber.close()
     self.store_subscriber.close()
+
+    # --------------------------------------------------------
+    # BASE PUBLISHERS
+    # --------------------------------------------------------
+
+    self.deploy_response_publisher.close()
+    self.store_response_publisher.close()
 
     # --------------------------------------------------------
     # PER-DRONE PUBLISHERS
@@ -193,9 +213,7 @@ def initialize_drone_inventory():
 
     for i in range(NUM_DRONES):
 
-        id = (
-            f"{DRONE_NAME_PREFIX}_{counter + i + 1}"
-        )
+        id = f"{DRONE_NAME_PREFIX}_{counter + i + 1}"
 
         print(f"[Base] Loading {id}...")
 
@@ -360,11 +378,31 @@ def on_deploy(message: RobotDeploymentMessage):
 
         print(f"[Base] Deployed {id}.")
 
+        response = RobotManagementResponseMessage(
+            id=id,
+            status=RobotManagementStatus.SUCCEEDED
+        )
+
     except Exception as error:
 
         print(
             f"[Base] Deployment failed for {id}: {error}"
         )
+
+        response = RobotManagementResponseMessage(
+            id=id,
+            status=RobotManagementStatus.FAILED,
+            reason=str(error)
+        )
+
+    # --------------------------------------------------------
+    # PUBLISH DEPLOYMENT RESULT
+    # --------------------------------------------------------
+
+    publish_management_response(
+        self.deploy_response_publisher,
+        response
+    )
 
 
 # ============================================================
@@ -412,10 +450,50 @@ def on_store(message: RobotStorageMessage):
 
         print(f"[Base] Stored {id}.")
 
+        response = RobotManagementResponseMessage(
+            id=id,
+            status=RobotManagementStatus.SUCCEEDED
+        )
+
     except Exception as error:
 
         print(
             f"[Base] Storage failed for {id}: {error}"
+        )
+
+        response = RobotManagementResponseMessage(
+            id=id,
+            status=RobotManagementStatus.FAILED,
+            reason=str(error)
+        )
+
+    # --------------------------------------------------------
+    # PUBLISH STORAGE RESULT
+    # --------------------------------------------------------
+
+    publish_management_response(
+        self.store_response_publisher,
+        response
+    )
+
+
+# ============================================================
+# MANAGEMENT RESPONSE
+# ============================================================
+
+def publish_management_response(
+    publisher: Publisher,
+    response: RobotManagementResponseMessage
+):
+
+    try:
+        publisher.publish(response)
+
+    except Exception as error:
+
+        print(
+            f"[Base] Failed to publish management response "
+            f"for {response.id}: {error}"
         )
 
 

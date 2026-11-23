@@ -1,6 +1,7 @@
 from dcs_world.robot.drone import Drone
 from dcs_world.communication import Subscriber, Publisher
 from dcs_world.geometry import Pose
+from dcs_world.robot.utils.deployment_state import DeploymentState
 from dcs_world.communication.messages import (
     RobotStatusMessage,
     RobotActivationMessage,
@@ -49,21 +50,27 @@ def on_activate(msg: RobotActivationMessage):
     """Activate the drone."""
 
     self.active = True
+    self.drone.deployment_state = DeploymentState.DEPLOYED
 
     print(f"[Drone] {self.drone.id} activated.")
+
+    # self.publish_status()
 
 
 def on_deactivate(msg: RobotDeactivationMessage):
     """Deactivate the drone."""
 
     self.active = False
+    self.drone.deployment_state = DeploymentState.STORED
 
     print(f"[Drone] {self.drone.id} deactivated.")
 
+    # self.publish_status()
 
 # ------------------------------------------------------------
 # Exploration callbacks
 # ------------------------------------------------------------
+
 
 def on_exploration_request(msg: ExplorationTaskMessage):
     """Process an exploration task request."""

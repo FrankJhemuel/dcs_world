@@ -1,5 +1,4 @@
 from collections import deque
-from enum import Enum, auto
 
 from dcs_world.geometry.pose import Pose
 from dcs_world.communication.messages import (
@@ -10,18 +9,8 @@ from dcs_world.communication.messages import (
 
 from .robot import Robot
 from .utils import RobotConfig
+from .utils.task_status import TaskStatus
 from .navigation.navigation_controller import NavigationController
-
-
-# ============================================================
-# DRONE STATE
-# ============================================================
-
-class DroneState(Enum):
-    IDLE = auto()
-    EXPLORING = auto()
-    RETURNING = auto()
-    ERROR = auto()
 
 
 # ============================================================
@@ -44,8 +33,6 @@ class Drone(Robot):
             init_soc=init_soc,
             config=config,
         )
-
-        self.state = DroneState.IDLE
 
         # Navigation
         self._targets: deque[Pose] = deque()
@@ -106,7 +93,7 @@ class Drone(Robot):
 
         response = ExplorationResponseMessage(
             task_id=self._current_task_id,
-            drone_id=self.id,
+            id=self.id,
             status=status,
             reason=reason,
         )
@@ -123,18 +110,22 @@ class Drone(Robot):
     ) -> ExplorationResponseMessage:
         """Validate and accept or reject an exploration task."""
 
-        if self.state != DroneState.IDLE:
+        if self.task_status not in (
+            TaskStatus.IDLE,
+            TaskStatus.COMPLETED,
+            TaskStatus.FAILED,
+        ):
             return ExplorationResponseMessage(
                 task_id=request.task_id,
-                drone_id=self.id,
+                id=self.id,
                 status=ExplorationResponseStatus.REJECTED,
-                reason=f"Drone is currently {self.state.name}.",
+                reason=f"Drone is currently {self.task_status.name}.",
             )
 
         if not request.targets:
             return ExplorationResponseMessage(
                 task_id=request.task_id,
-                drone_id=self.id,
+                id=self.id,
                 status=ExplorationResponseStatus.REJECTED,
                 reason="No exploration targets provided.",
             )
@@ -146,13 +137,16 @@ class Drone(Robot):
             target.copy() for target in request.targets
         )
 
-        # Start exploration.
-        self.state = DroneState.EXPLORING
+        # Update task status.
+        self.task_status = TaskStatus.ASSIGNED
+
+        # Begin task execution.
+        self.task_status = TaskStatus.IN_PROGRESS
         self._select_next_target()
 
         return ExplorationResponseMessage(
             task_id=request.task_id,
-            drone_id=self.id,
+            id=self.id,
             status=ExplorationResponseStatus.ACCEPTED,
             reason="Exploration task accepted.",
         )
@@ -174,7 +168,7 @@ class Drone(Robot):
     def complete_current_target(self) -> None:
         """Mark the current target as reached and select the next one."""
 
-        if self.state != DroneState.EXPLORING:
+        if self.task_status != TaskStatus.IN_PROGRESS:
             raise RuntimeError("Drone is not currently exploring.")
 
         if self._current_target is None:
@@ -195,7 +189,7 @@ class Drone(Robot):
         )
 
         self._current_task_id = None
-        self.state = DroneState.IDLE
+        self.task_status = TaskStatus.COMPLETED
 
     def _fail_task(self, reason: str) -> None:
         """Mark the current task as failed and queue a response."""
@@ -208,7 +202,8 @@ class Drone(Robot):
         self._targets.clear()
         self._current_target = None
         self._current_task_id = None
-        self.state = DroneState.ERROR
+
+        self.task_status = TaskStatus.FAILED
 
     def cancel_task(self) -> None:
         """Cancel the current task and clear all assigned targets."""
@@ -216,7 +211,8 @@ class Drone(Robot):
         self._targets.clear()
         self._current_target = None
         self._current_task_id = None
-        self.state = DroneState.IDLE
+
+        self.task_status = TaskStatus.IDLE
 
     # ========================================================
     # MAIN CONTROL LOOP
@@ -225,17 +221,10 @@ class Drone(Robot):
     def run(self, dt: float) -> None:
         """Execute one control cycle."""
 
-        if self.state == DroneState.IDLE:
+        if self.task_status != TaskStatus.IN_PROGRESS:
             return
 
-        if self.state == DroneState.EXPLORING:
-            self._execute_exploration(dt)
-
-        elif self.state == DroneState.RETURNING:
-            self._execute_return(dt)
-
-        elif self.state == DroneState.ERROR:
-            return
+        self._execute_exploration(dt)
 
     # ========================================================
     # EXPLORATION BEHAVIOR

@@ -6,7 +6,9 @@ import time
 from dcs_world.geometry.pose import Pose
 from dcs_world.geometry.position import Position
 from dcs_world.geometry.twist import Twist
+from dcs_world.robot.utils.deployment_state import DeploymentState
 from dcs_world.robot.utils.robot_status import RobotStatus
+from dcs_world.robot.utils.task_status import TaskStatus
 
 
 # ============================================================
@@ -24,10 +26,12 @@ class TwistStamped:
 # TASK MESSAGES
 # ============================================================
 
+
 @dataclass
 class ExplorationTaskMessage:
     task_id: str
     targets: list[Pose]
+
 
 class ExplorationResponseStatus(Enum):
     ACCEPTED = auto()
@@ -35,16 +39,18 @@ class ExplorationResponseStatus(Enum):
     COMPLETED = auto()
     FAILED = auto()
 
+
 @dataclass
 class ExplorationResponseMessage:
     task_id: str
-    drone_id: str
+    id: str
     status: ExplorationResponseStatus
     reason: str = ""
 
 # ============================================================
 # ROBOT MANAGEMENT MESSAGES
 # ============================================================
+
 
 @dataclass
 class RobotActivationMessage:
@@ -66,6 +72,18 @@ class RobotStorageMessage:
     id: str
 
 
+class RobotManagementStatus(Enum):
+    SUCCEEDED = auto()
+    FAILED = auto()
+
+
+@dataclass
+class RobotManagementResponseMessage:
+    id: str
+    status: RobotManagementStatus
+    reason: str = ""
+
+
 @dataclass
 class RobotStatusMessage:
     """Represent the status of a robot."""
@@ -77,6 +95,8 @@ class RobotStatusMessage:
     velocity: Twist
     soc: float
     status: RobotStatus
+    deployment_state: DeploymentState
+    task_status: TaskStatus
 
     @staticmethod
     def from_robot(robot: "Robot") -> "RobotStatusMessage":  # type: ignore
@@ -89,7 +109,9 @@ class RobotStatusMessage:
             pose=robot.pose,
             velocity=robot.velocity,
             soc=robot.soc,
-            status=robot.status
+            status=robot.status,
+            deployment_state=robot.deployment_state,
+            task_status=robot.task_status
         )
 
 

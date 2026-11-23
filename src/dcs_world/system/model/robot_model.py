@@ -6,6 +6,8 @@ from zmq import Enum
 from dcs_world.geometry.pose import Pose
 from dcs_world.geometry.twist import Twist
 from dcs_world.robot.utils.robot_status import RobotStatus
+from dcs_world.robot.utils.deployment_state import DeploymentState
+from dcs_world.robot.utils.task_status import TaskStatus
 
 def _to_dict(value):
     """Recursively convert objects into JSON-compatible values."""
@@ -41,6 +43,8 @@ class RobotModel:
     velocity: Twist
     soc: float
     status: RobotStatus
+    task_status: TaskStatus
+    deployment_state: DeploymentState
     
     @classmethod
     def from_status_message(cls, message: 'RobotStatusMessage') -> 'RobotModel': #type: ignore
