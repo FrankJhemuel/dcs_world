@@ -101,10 +101,14 @@ class Pose:
         orientation = Vector3(0.0, 0.0, yaw)  # Assuming roll and pitch are zero
         return cls(position=position, orientation=orientation)
     
-    def copy(self) -> 'Pose':
+    def copy(self) -> "Pose":
         """Create a copy of the current Pose instance.
 
         Returns:
             Pose: A new instance of Pose with the same position and orientation as the current instance.
         """
-        return Pose(position=self.position, orientation=self.orientation)
+        
+        return Pose(
+            position=self.position.copy(),
+            orientation=self.orientation.copy(),
+        )

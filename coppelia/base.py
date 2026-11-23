@@ -193,11 +193,11 @@ def initialize_drone_inventory():
 
     for i in range(NUM_DRONES):
 
-        robot_id = (
+        id = (
             f"{DRONE_NAME_PREFIX}_{counter + i + 1}"
         )
 
-        print(f"[Base] Loading {robot_id}...")
+        print(f"[Base] Loading {id}...")
 
         # Load model
         drone_handle = sim.loadModel(
@@ -207,7 +207,7 @@ def initialize_drone_inventory():
         # Assign model alias
         sim.setObjectAlias(
             drone_handle,
-            robot_id
+            id
         )
 
         # ----------------------------------------------------
@@ -230,7 +230,7 @@ def initialize_drone_inventory():
         # SAVE ORIGINAL MODEL PROPERTIES
         # ----------------------------------------------------
 
-        self.model_properties[robot_id] = (
+        self.model_properties[id] = (
             sim.getModelProperty(drone_handle)
         )
 
@@ -244,25 +244,25 @@ def initialize_drone_inventory():
         # REGISTER MODEL HANDLE
         # ----------------------------------------------------
 
-        self.drones[robot_id] = drone_handle
+        self.drones[id] = drone_handle
 
         # ----------------------------------------------------
         # COMMUNICATION PUBLISHERS
         # ----------------------------------------------------
 
-        self.pose_publishers[robot_id] = Publisher(
-            topic=f"{robot_id}.reset_pose"
+        self.pose_publishers[id] = Publisher(
+            topic=f"{id}.reset_pose"
         )
 
-        self.activation_publishers[robot_id] = Publisher(
-            topic=f"{robot_id}.activate"
+        self.activation_publishers[id] = Publisher(
+            topic=f"{id}.activate"
         )
 
-        self.deactivation_publishers[robot_id] = Publisher(
-            topic=f"{robot_id}.deactivate"
+        self.deactivation_publishers[id] = Publisher(
+            topic=f"{id}.deactivate"
         )
 
-        print(f"[Base] Loaded {robot_id}.")
+        print(f"[Base] Loaded {id}.")
 
     print(
         f"[Base] Successfully loaded {NUM_DRONES} drones."
@@ -275,7 +275,7 @@ def initialize_drone_inventory():
 
 def on_deploy(message: RobotDeploymentMessage):
 
-    robot_id = message.robot_id
+    id = message.id
 
     try:
 
@@ -283,11 +283,11 @@ def on_deploy(message: RobotDeploymentMessage):
         # VALIDATION
         # ----------------------------------------------------
 
-        drone_handle = self.drones.get(robot_id)
+        drone_handle = self.drones.get(id)
 
         if drone_handle is None:
             raise ValueError(
-                f"Unknown drone: {robot_id}"
+                f"Unknown drone: {id}"
             )
 
         current_properties = sim.getModelProperty(
@@ -299,7 +299,7 @@ def on_deploy(message: RobotDeploymentMessage):
             & sim.modelproperty_not_visible
         ):
             raise ValueError(
-                f"{robot_id} is already deployed."
+                f"{id} is already deployed."
             )
 
         # ----------------------------------------------------
@@ -343,7 +343,7 @@ def on_deploy(message: RobotDeploymentMessage):
         # SYNCHRONIZE INTERNAL DRONE POSE
         # ----------------------------------------------------
 
-        self.pose_publishers[robot_id].publish(pose)
+        self.pose_publishers[id].publish(pose)
 
         # ----------------------------------------------------
         # ACTIVATE DRONE
@@ -351,19 +351,19 @@ def on_deploy(message: RobotDeploymentMessage):
 
         activate_drone(
             drone_handle,
-            robot_id
+            id
         )
 
-        self.activation_publishers[robot_id].publish(
-            RobotActivationMessage(robot_id=robot_id)
+        self.activation_publishers[id].publish(
+            RobotActivationMessage(id=id)
         )
 
-        print(f"[Base] Deployed {robot_id}.")
+        print(f"[Base] Deployed {id}.")
 
     except Exception as error:
 
         print(
-            f"[Base] Deployment failed for {robot_id}: {error}"
+            f"[Base] Deployment failed for {id}: {error}"
         )
 
 
@@ -373,7 +373,7 @@ def on_deploy(message: RobotDeploymentMessage):
 
 def on_store(message: RobotStorageMessage):
 
-    robot_id = message.robot_id
+    id = message.id
 
     try:
 
@@ -381,11 +381,11 @@ def on_store(message: RobotStorageMessage):
         # VALIDATION
         # ----------------------------------------------------
 
-        drone_handle = self.drones.get(robot_id)
+        drone_handle = self.drones.get(id)
 
         if drone_handle is None:
             raise ValueError(
-                f"Unknown drone: {robot_id}"
+                f"Unknown drone: {id}"
             )
 
         current_properties = sim.getModelProperty(
@@ -397,25 +397,25 @@ def on_store(message: RobotStorageMessage):
             & sim.modelproperty_not_visible
         ):
             raise ValueError(
-                f"{robot_id} is already stored."
+                f"{id} is already stored."
             )
 
         # ----------------------------------------------------
         # DEACTIVATE DRONE
         # ----------------------------------------------------
 
-        self.deactivation_publishers[robot_id].publish(
-            RobotDeactivationMessage(robot_id=robot_id)
+        self.deactivation_publishers[id].publish(
+            RobotDeactivationMessage(id=id)
         )
 
         deactivate_drone(drone_handle)
 
-        print(f"[Base] Stored {robot_id}.")
+        print(f"[Base] Stored {id}.")
 
     except Exception as error:
 
         print(
-            f"[Base] Storage failed for {robot_id}: {error}"
+            f"[Base] Storage failed for {id}: {error}"
         )
 
 
@@ -425,10 +425,10 @@ def on_store(message: RobotStorageMessage):
 
 def activate_drone(
     drone_handle: int,
-    robot_id: str
+    id: str
 ):
 
-    original_properties = self.model_properties[robot_id]
+    original_properties = self.model_properties[id]
 
     sim.setModelProperty(
         drone_handle,

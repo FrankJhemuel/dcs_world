@@ -9,3 +9,9 @@ class Vector3:
     y: float = 0.0
     z: float = 0.0
     
+    def copy(self) -> "Vector3":
+        return Vector3(
+            x=self.x,
+            y=self.y,
+            z=self.z,
+        )

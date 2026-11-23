@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from enum import Enum, auto
 from typing import Literal
 import time
 
@@ -19,6 +20,27 @@ class TwistStamped:
     timestamp: float
     twist: Twist
 
+# ============================================================
+# TASK MESSAGES
+# ============================================================
+
+@dataclass
+class ExplorationTaskMessage:
+    task_id: str
+    targets: list[Pose]
+
+class ExplorationResponseStatus(Enum):
+    ACCEPTED = auto()
+    REJECTED = auto()
+    COMPLETED = auto()
+    FAILED = auto()
+
+@dataclass
+class ExplorationResponseMessage:
+    task_id: str
+    drone_id: str
+    status: ExplorationResponseStatus
+    reason: str = ""
 
 # ============================================================
 # ROBOT MANAGEMENT MESSAGES
@@ -26,22 +48,22 @@ class TwistStamped:
 
 @dataclass
 class RobotActivationMessage:
-    robot_id: str
+    id: str
 
 
 @dataclass
 class RobotDeactivationMessage:
-    robot_id: str
+    id: str
 
 
 @dataclass
 class RobotDeploymentMessage:
-    robot_id: str
+    id: str
 
 
 @dataclass
 class RobotStorageMessage:
-    robot_id: str
+    id: str
 
 
 @dataclass
@@ -80,7 +102,7 @@ class CivilianMessage:
     """Represent observations collected by a robot regarding civilians."""
 
     timestamp: float
-    robot_id: str
+    id: str
     building_position: Position
     n_civilians: int
 
@@ -90,7 +112,7 @@ class ObstacleMessage:
     """Represent observations collected by a robot regarding obstacles."""
 
     timestamp: float
-    robot_id: str
+    id: str
     position: Position
 
 
@@ -99,5 +121,5 @@ class POIMessage:
     """Represent observations collected by a drone regarding points of interest."""
 
     timestamp: float
-    robot_id: str
+    id: str
     building_position: Position

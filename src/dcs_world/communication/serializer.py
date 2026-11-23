@@ -2,7 +2,7 @@ import json
 
 from dataclasses import fields, is_dataclass
 from enum import Enum
-from typing import get_type_hints
+from typing import get_args, get_origin, get_type_hints
 
 
 def _serialize_value(value):
@@ -49,24 +49,58 @@ def deserialize(data: str, message_type):
     return _construct_message(values, message_type)
 
 
+def _construct_value(value, expected_type):
+    """Recursively reconstruct a value according to its expected type."""
+
+    if value is None:
+        return None
+
+    origin = get_origin(expected_type)
+    args = get_args(expected_type)
+
+    # Handle lists, e.g. list[Pose].
+    if origin is list:
+        item_type = args[0]
+        return [
+            _construct_value(item, item_type)
+            for item in value
+        ]
+
+    # Handle dictionaries, if their value type is specified.
+    if origin is dict:
+        key_type, value_type = args
+        return {
+            key: _construct_value(item, value_type)
+            for key, item in value.items()
+        }
+
+    # Handle nested dataclasses.
+    if is_dataclass(expected_type):
+        return _construct_message(value, expected_type)
+
+    # Handle enums.
+    if isinstance(expected_type, type) and issubclass(expected_type, Enum):
+        return expected_type[value.upper()]
+
+    return value
+
+
 def _construct_message(values: dict, message_type):
     """Recursively construct a dataclass from a dictionary."""
 
     type_hints = get_type_hints(message_type)
 
-    for field in fields(message_type):
-        field_type = type_hints[field.name]
+    kwargs = {}
 
+    for field in fields(message_type):
         if field.name not in values:
             continue
 
-        if is_dataclass(field_type):
-            values[field.name] = _construct_message(
-                values[field.name],
-                field_type
-            )
+        field_type = type_hints[field.name]
 
-        elif isinstance(field_type, type) and issubclass(field_type, Enum):
-            values[field.name] = field_type[values[field.name]]
+        kwargs[field.name] = _construct_value(
+            values[field.name],
+            field_type,
+        )
 
-    return message_type(**values)
+    return message_type(**kwargs)

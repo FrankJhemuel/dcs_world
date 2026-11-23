@@ -82,28 +82,28 @@ def main():
 
             if key == " ":
 
-                robot_id = next(
+                id = next(
                     (
-                        robot_id
-                        for robot_id, state in drone_states.items()
+                        id
+                        for id, state in drone_states.items()
                         if state == "stored"
                     ),
                     None
                 )
 
-                if robot_id is None:
+                if id is None:
                     print("\n[TEST] No stored drones available.")
                     continue
 
                 deploy_publisher.publish(
                     RobotDeploymentMessage(
-                        robot_id=robot_id
+                        id=id
                     )
                 )
 
-                drone_states[robot_id] = "deployed"
+                drone_states[id] = "deployed"
 
-                print(f"\n[TEST] Deployment request sent: {robot_id}")
+                print(f"\n[TEST] Deployment request sent: {id}")
 
             # ------------------------------------------------
             # STORE DRONE
@@ -111,28 +111,28 @@ def main():
 
             elif key == "\x7f":
 
-                robot_id = next(
+                id = next(
                     (
-                        robot_id
-                        for robot_id, state in drone_states.items()
+                        id
+                        for id, state in drone_states.items()
                         if state == "deployed"
                     ),
                     None
                 )
 
-                if robot_id is None:
+                if id is None:
                     print("\n[TEST] No deployed drones available.")
                     continue
 
                 store_publisher.publish(
                     RobotStorageMessage(
-                        robot_id=robot_id
+                        id=id
                     )
                 )
 
-                drone_states[robot_id] = "stored"
+                drone_states[id] = "stored"
 
-                print(f"\n[TEST] Storage request sent: {robot_id}")
+                print(f"\n[TEST] Storage request sent: {id}")
 
             time.sleep(0.2)
 

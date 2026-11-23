@@ -54,6 +54,10 @@ class MissionControl:
 
         return self.pois
 
+    # ===============================================================
+    # MISSION CONTROL - TASKS
+    # ================================================================
+    
     # ================================================================
     # ROBOT MANAGEMENT - DEPLOYMENT
     # ================================================================
@@ -67,8 +71,8 @@ class MissionControl:
         self._validate_robot_type(robot_type)
 
         return {
-            robot_id: robot
-            for robot_id, robot in self.all_robots.items()
+            id: robot
+            for id, robot in self.all_robots.items()
             if robot.deployment_state == DeploymentState.STORED
             and (robot_type is None or robot.robot_type == robot_type)
         }
@@ -82,8 +86,8 @@ class MissionControl:
         self._validate_robot_type(robot_type)
 
         return {
-            robot_id: robot
-            for robot_id, robot in self.all_robots.items()
+            id: robot
+            for id, robot in self.all_robots.items()
             if robot.deployment_state == DeploymentState.DEPLOYED
             and (robot_type is None or robot.robot_type == robot_type)
         }
@@ -99,8 +103,8 @@ class MissionControl:
         stored_robots = self.get_stored_robots(robot_type)
 
         return {
-            robot_id: robot
-            for robot_id, robot in stored_robots.items()
+            id: robot
+            for id, robot in stored_robots.items()
             if robot.status not in (
                 RobotStatus.CHARGING,
                 RobotStatus.ERROR
@@ -138,19 +142,19 @@ class MissionControl:
 
         self.ground_robots[ground_robot.id] = ground_robot
 
-    def get_drone(self, robot_id: str) -> RobotModel | None:
+    def get_drone(self, id: str) -> RobotModel | None:
         """Retrieve a registered drone by its ID."""
 
-        return self.drones.get(robot_id)
+        return self.drones.get(id)
 
-    def get_ground_robot(self, robot_id: str) -> RobotModel | None:
+    def get_ground_robot(self, id: str) -> RobotModel | None:
         """Retrieve a registered ground robot by its ID."""
 
-        return self.ground_robots.get(robot_id)
+        return self.ground_robots.get(id)
 
     def update_robot(
         self,
-        robot_id: str,
+        id: str,
         updated_robot: RobotModel
     ) -> None:
         """Update the registered model of an existing robot."""
@@ -159,18 +163,18 @@ class MissionControl:
             raise TypeError("Expected a RobotModel instance.")
 
         if updated_robot.robot_type == "Drone":
-            if robot_id not in self.drones:
-                raise ValueError(f"Drone with ID {robot_id} does not exist.")
+            if id not in self.drones:
+                raise ValueError(f"Drone with ID {id} does not exist.")
 
-            self.drones[robot_id] = updated_robot
+            self.drones[id] = updated_robot
 
         elif updated_robot.robot_type == "GroundRobot":
-            if robot_id not in self.ground_robots:
+            if id not in self.ground_robots:
                 raise ValueError(
-                    f"Ground robot with ID {robot_id} does not exist."
+                    f"Ground robot with ID {id} does not exist."
                 )
 
-            self.ground_robots[robot_id] = updated_robot
+            self.ground_robots[id] = updated_robot
 
         else:
             raise ValueError(

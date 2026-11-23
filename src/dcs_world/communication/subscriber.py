@@ -9,7 +9,12 @@ SUBSCRIBER_ENDPOINT = "tcp://127.0.0.1:5556"
 
 class Subscriber:
 
-    def __init__(self, topic: str, message_type, callback=None):
+    def __init__(
+        self,
+        topic: str,
+        message_type,
+        callback=None
+    ):
 
         self.topic = topic
         self.message_type = message_type
@@ -22,6 +27,7 @@ class Subscriber:
 
         # Subscribe to the common prefix before the wildcard.
         prefix = topic.split("*")[0]
+
         self.socket.setsockopt(
             zmq.SUBSCRIBE,
             prefix.encode("utf-8")
@@ -31,26 +37,33 @@ class Subscriber:
 
     def receive(self):
 
-        try:
-            topic, payload = self.socket.recv_multipart(
-                flags=zmq.NOBLOCK
+        while True:
+
+            try:
+                frames = self.socket.recv_multipart(
+                    flags=zmq.NOBLOCK
+                )
+
+            except zmq.Again:
+                break
+
+            topic, payload = frames
+
+            topic = topic.decode("utf-8")
+
+            if not fnmatch.fnmatchcase(topic, self.topic):
+                continue
+
+            message = deserialize(
+                payload,
+                self.message_type
             )
 
-        except zmq.Again:
-            return
-
-        topic = topic.decode("utf-8")
-
-        if not fnmatch.fnmatchcase(topic, self.topic):
-            return
-
-        message = deserialize(
-            payload.decode("utf-8"),
-            self.message_type
-        )
-
-        if self.callback is not None:
-            self.callback(message)
+            if self.callback is not None:
+                self.callback(message)
 
     def close(self):
-        self.socket.close()
+
+        if self.socket is not None:
+            self.socket.close()
+            self.socket = None

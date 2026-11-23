@@ -1,19 +1,17 @@
 import zmq
 
-
 PUBLISHER_ENDPOINT = "tcp://127.0.0.1:5555"
 SUBSCRIBER_ENDPOINT = "tcp://127.0.0.1:5556"
 
 
 def main():
+
     context = zmq.Context()
 
-    # Receives messages from publishers.
     frontend = context.socket(zmq.XSUB)
     frontend.setsockopt(zmq.LINGER, 0)
     frontend.bind(PUBLISHER_ENDPOINT)
 
-    # Forwards messages to subscribers.
     backend = context.socket(zmq.XPUB)
     backend.setsockopt(zmq.LINGER, 0)
     backend.bind(SUBSCRIBER_ENDPOINT)
